@@ -5,4 +5,4 @@ schema.sql
 .env
 .env.example
 node_modules
-vercel.json
+# vercel.json must NOT be ignored!
