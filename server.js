@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
 
@@ -166,8 +167,12 @@ app.delete('/api/tasks/:id', async (req, res) => {
     }
 });
 
+// Serve static files (HTML, CSS, JS)
+app.use(express.static(__dirname));
+
+// Serve index.html for the root route
 app.get('/', (req, res) => {
-    res.send('Backend server is running!');
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(port, () => {
