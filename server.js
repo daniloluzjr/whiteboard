@@ -80,6 +80,7 @@ const pool = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    port: 4000, // TiDB requires port 4000
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -88,6 +89,13 @@ const pool = mysql.createPool({
         rejectUnauthorized: true
     }
 });
+
+// Debug: Check if variables are loaded (Don't log password!)
+console.log('--- DB CONNECTION DEBUG ---');
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('---------------------------');
 
 // Check DB Connection on Start
 pool.getConnection()
