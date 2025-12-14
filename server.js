@@ -15,6 +15,65 @@ app.use(cors());
 
 app.use(express.json());
 
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123'; // In production, use .env!
+
+// --- Auth Routes ---
+
+// POST /api/register
+app.post('/api/register', async (req, res) => {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+    try {
+        // Check if user exists
+        const [existing] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+        if (existing.length > 0) {
+            return res.status(409).json({ error: 'Email already registered' });
+        }
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        // Insert user
+        const [result] = await pool.query(
+            'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
+            [name, email, hashedPassword]
+        );
+        res.status(201).json({ message: 'User registered successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Registration failed' });
+    }
+});
+
+// POST /api/login
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password required' });
+    }
+    try {
+        // Find user
+        const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        const user = users[0];
+        // Check password
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        // Generate Token
+        const token = jwt.sign({ id: user.id, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Login failed' });
+    }
+});
+
 // Database Connection Pool
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
