@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whiteboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Menu</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <!-- Navigation items will go here -->
+            </nav>
+
+            <div class="employee-status-list">
+                <h4>STATUS</h4>
+                <ul>
+                    <li>
+                        <span class="status-dot status-free"></span>
+                        <span>Danilo</span>
+                    </li>
+                    <li>
+                        <span class="status-dot status-busy"></span>
+                        <span>Fernanda</span>
+                    </li>
+                    <li>
+                        <span class="status-dot status-meeting"></span>
+                        <span>Rodrigo</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="add-sticker-container">
+                <button class="add-sticker-btn">+</button>
+                <span>Add Sticker</span>
+            </div>
+
+            <div class="filter-container">
+                <input type="text" id="filter-input" placeholder="Filter by title...">
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Whiteboard</h1>
+            </header>
+            <section class="tasks-grid">
+                <!-- Permanent task cards -->
+                <div class="task-card priority-1 non-deletable" data-group="coordinators" data-type="todo">
+                    <div class="card-header">
+                        <h3>To Do - Coordinators</h3>
+                        <button class="add-task-item-btn">+</button>
+                    </div>
+                    <ul><!-- Tasks will be added here dynamically --></ul>
+                </div>
+
+                <div class="task-card priority-done non-deletable" data-group="coordinators" data-type="done">
+                     <div class="card-header">
+                        <h3>Tasks done - Coordinators</h3>
+                        <button class="add-task-item-btn">+</button>
+                    </div>
+                    <ul><!-- Completed tasks will go here --></ul>
+                </div>
+
+                <div class="task-card priority-4 non-deletable" data-group="supervisors" data-type="todo">
+                    <div class="card-header">
+                        <h3>To Do - Supervisors</h3>
+                        <button class="add-task-item-btn">+</button>
+                    </div>
+                    <ul><!-- Tasks will be added here dynamically --></ul>
+                </div>
+
+                <div class="task-card priority-5 non-deletable" data-group="supervisors" data-type="done">
+                     <div class="card-header">
+                        <h3>Tasks done - Supervisors</h3>
+                    </div>
+                    <ul><!-- Completed tasks will go here --></ul>
+                </div>
+
+                <!-- Dynamically added task cards will go here -->
+            </section>
+        </main>
+    </div>
+
+    <!-- Status Change Pop-up (hidden by default) -->
+    <div id="status-popup" class="status-popup hidden">
+        <ul>
+            <li data-status="free"><span class="status-dot status-free"></span> Free</li>
+            <li data-status="busy"><span class="status-dot status-busy"></span> Busy</li>
+            <li data-status="meeting"><span class="status-dot status-meeting"></span> In a meeting</li>
+            <li data-status="on-call"><span class="status-dot status-on-call"></span> On Call</li>
+            <li data-status="away"><span class="status-dot status-away"></span> Away</li>
+        </ul>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="custom-confirm-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <p id="confirm-modal-text">Are you sure you want to delete this sticker?</p>
+                <div class="modal-buttons">
+                    <button id="confirm-delete-btn" class="btn-confirm">Delete</button>
+                    <button id="cancel-delete-btn" class="btn-cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+    <!-- Task Editor/Viewer Modal -->
+    <div id="task-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="task-modal-title">New Task</h3>
+            <div class="priority-selection">
+                <label><input type="radio" name="priority" value="red" checked> <span class="priority-color-dot red"></span></label>
+                <label><input type="radio" name="priority" value="orange"> <span class="priority-color-dot orange"></span></label>
+                <label><input type="radio" name="priority" value="yellow"> <span class="priority-color-dot yellow"></span></label>
+            </div>
+            <input type="text" id="task-title-input" placeholder="Task Title" maxlength="100">
+            <textarea id="task-text-input" placeholder="Task description..." maxlength="400"></textarea>
+                <div id="task-dates" class="hidden">
+                    <p><strong>Created on:</strong> <span id="creation-date"></span></p>
+                    <p><strong>Completed on:</strong> <span id="completion-date"></span></p>
+                </div>
+            <div class="modal-buttons">
+                    <button id="save-task-btn" class="btn-save">Save</button>
+                    <button id="close-task-modal-btn" class="btn-cancel">Close</button>
+                    <button id="complete-task-btn" class="btn-complete hidden">Mark as Done</button>
+                </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
