@@ -358,8 +358,8 @@ body {
   list-style-position: inside;
   padding-left: 4px;
   color: #495057;
-  max-height: 350px;
-  /* Approx 10 items */
+  max-height: 260px;
+  /* Approx 7 items */
   overflow-y: auto;
 }
 
