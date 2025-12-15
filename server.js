@@ -30,7 +30,7 @@ app.post('/api/register', async (req, res) => {
 
     // --- Domain Validation ---
     if (!email.endsWith('@inicare.ie')) {
-        return res.status(400).json({ error: 'Registration allowed only for @inicare.ie emails.' });
+        return res.status(400).json({ error: 'Please sign up using your corporate email address.' });
     }
     // ------------------------
 

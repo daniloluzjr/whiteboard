@@ -38,8 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             users.forEach(user => {
                 const li = document.createElement('li');
-                let displayName = user.email.split('@')[0]; // Name from email
-                displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1); // Capitalize first letter
+                // Use the registered name, or fallback to email prefix if missing
+                let displayName = user.name || user.email.split('@')[0];
+                // Ensure capitalization for the fallback
+                if (!user.name) {
+                    displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+                }
                 const isMe = currentUser && user.id === currentUser.id;
 
                 li.innerHTML = `
