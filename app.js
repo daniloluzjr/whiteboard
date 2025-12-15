@@ -1,4 +1,4 @@
-// Last Updated: Just Now
+// Last Updated: Just Now (Forced Rewrite)
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration ---
     // Update this URL if your backend is hosted elsewhere
@@ -62,8 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const groups = await fetchGroups();
 
             const fixedDefs = [
-                { name: 'Coordinators', selector: '[data-group="coordinators"]' },
-                { name: 'Supervisors', selector: '[data-group="supervisors"]' }
+                { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
+                { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' }
             ];
 
             for (const def of fixedDefs) {
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // If not found, create them to avoid 500 errors.
                 if (!dbGroup) {
                     console.log(`Creating missing fixed group: ${def.name}`);
-                    dbGroup = await createGroupAPI(def.name, 'gray');
+                    dbGroup = await createGroupAPI(def.name, def.color);
                 }
 
                 if (dbGroup) {
@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const cards = document.querySelectorAll(def.selector);
                     cards.forEach(card => {
                         card.dataset.group = dbGroup.id; // Set REAL NUMERIC ID
+                        card.dataset.color = def.color;
                         card.classList.remove('hidden');
                     });
                 }
