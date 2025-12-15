@@ -411,10 +411,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const creationDate = new Date(task.created_at).toLocaleDateString('pt-BR');
             const completionInfo = task.completed_at
-                ? ` - <em>completed on ${new Date(task.completed_at).toLocaleDateString('en-US')}</em>`
-                : ` - <em>added on ${creationDate}</em>`;
+                ? ` - <span style="font-size: 0.8em; color: #666; font-style: italic;">completed on ${new Date(task.completed_at).toLocaleDateString('en-US')}</span>`
+                : ` - <span style="font-size: 0.8em; color: #666; font-style: italic;">added on ${creationDate}</span>`;
 
-            li.innerHTML = `<span class="task-item-priority-dot ${task.priority}"></span><span>${task.title}${completionInfo}</span>`;
+            li.innerHTML = `<span class="task-item-priority-dot ${task.priority}"></span><span><strong>${task.title}</strong>${completionInfo}</span>`;
             return li;
         }
 
@@ -617,6 +617,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (radio) radio.checked = true;
                 }
                 document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = true);
+
+                // --- DELETE BUTTON LOGIC ---
+                const deleteBtn = document.getElementById('delete-task-btn');
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+
+                // Debug log
+                console.log('User:', currentUser?.id, 'Creator:', currentTaskData.created_by);
+
+                if (currentUser && currentTaskData.created_by && String(currentUser.id) === String(currentTaskData.created_by)) {
+                    deleteBtn.classList.remove('hidden');
+                } else {
+                    deleteBtn.classList.add('hidden');
+                }
             }
         }
 
