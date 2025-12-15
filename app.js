@@ -28,7 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             users.forEach(user => {
                 const li = document.createElement('li');
-                const displayName = user.email.split('@')[0]; // Name from email
+                let displayName = user.email.split('@')[0]; // Name from email
+                displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1); // Capitalize first letter
                 const isMe = currentUser && user.id === currentUser.id;
 
                 li.innerHTML = `
@@ -60,7 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Optimistic UI Update
                 if (currentDot) {
-                    currentDot.className = `status-dot status-${newStatus}`;
+                    // Remove all known status classes
+                    currentDot.classList.remove('status-free', 'status-busy', 'status-meeting', 'status-on-call', 'status-away', 'status-holiday');
+                    currentDot.classList.add(`status-${newStatus}`);
                 }
                 statusPopup.classList.add('hidden');
 
