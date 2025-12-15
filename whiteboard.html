@@ -121,6 +121,13 @@
             </div>
             <input type="text" id="task-title-input" placeholder="Task Title" maxlength="100">
             <textarea id="task-text-input" placeholder="Task description..." maxlength="400"></textarea>
+
+            <label id="solution-label"
+                style="display:block; margin-top:10px; font-weight:bold; font-size:0.9rem; color:#555;"
+                class="hidden">Resolution:</label>
+            <textarea id="task-solution-input" placeholder="Resolution / What was done..." rows="3" class="hidden"
+                style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; resize: vertical; font-family: inherit; margin-bottom: 10px;"></textarea>
+
             <div id="task-dates" class="hidden">
                 <p><strong>Created on:</strong> <span id="creation-date"></span></p>
                 <p><strong>Completed on:</strong> <span id="completion-date"></span></p>

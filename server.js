@@ -339,6 +339,9 @@ app.patch('/api/tasks/:id', async (req, res) => {
     if (description !== undefined) { fields.push('description = ?'); values.push(description); }
     if (priority !== undefined) { fields.push('priority = ?'); values.push(priority); }
     if (group_id !== undefined) { fields.push('group_id = ?'); values.push(group_id); }
+    // Add solution support
+    const { solution } = req.body;
+    if (solution !== undefined) { fields.push('solution = ?'); values.push(solution); }
 
     if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
 

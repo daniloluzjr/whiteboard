@@ -527,6 +527,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveTaskBtn.classList.remove('hidden');
                 completeTaskBtn.classList.add('hidden');
                 taskDates.classList.add('hidden');
+                // Hide solution in create mode
+                document.getElementById('solution-label').classList.add('hidden');
+                document.getElementById('task-solution-input').classList.add('hidden');
+                document.getElementById('task-solution-input').value = '';
             } else if (mode === 'view') {
                 taskModalTitle.textContent = 'Task Details';
                 taskTitleInput.value = currentTaskData.title;
@@ -534,12 +538,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 taskTitleInput.readOnly = true;
                 taskTextInput.readOnly = true;
 
-                saveTaskBtn.classList.add('hidden');
+                // Solution Field Logic
+                const solutionInput = document.getElementById('task-solution-input');
+                const solutionLabel = document.getElementById('solution-label');
+                solutionInput.value = currentTaskData.solution || '';
 
                 if (currentTaskData.status === 'done') {
+                    // If done, show solution as read-only
+                    saveTaskBtn.classList.add('hidden');
                     completeTaskBtn.classList.add('hidden');
+                    solutionInput.readOnly = true;
+                    solutionLabel.classList.remove('hidden');
+                    solutionInput.classList.remove('hidden');
                 } else {
+                    // If todo, allow writing solution
+                    saveTaskBtn.classList.add('hidden');
                     completeTaskBtn.classList.remove('hidden');
+                    solutionInput.readOnly = false;
+                    solutionLabel.classList.remove('hidden');
+                    solutionInput.classList.remove('hidden');
                 }
 
                 taskDates.classList.remove('hidden');
