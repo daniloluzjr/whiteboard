@@ -536,6 +536,18 @@ body {
   background-color: rgba(232, 62, 140, 0.05);
 }
 
+.task-card[data-color="yellow"] {
+  border-top: 5px solid #ffc107;
+  /* Amarelo */
+  background-color: rgba(255, 193, 7, 0.05);
+}
+
+.task-card[data-color="green"] {
+  border-top: 5px solid #28a745;
+  /* Verde */
+  background-color: rgba(40, 167, 69, 0.05);
+}
+
 /* --- Premium Notifications --- */
 .notification-container {
   position: fixed;
