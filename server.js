@@ -362,11 +362,7 @@ app.post('/api/tasks', async (req, res) => {
         res.status(500).json({ error: 'Failed to create task' });
     }
 });
-    } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to create task' });
-}
-});
+
 
 // PATCH /api/tasks/:id - Update task (status, completion_at, etc.)
 app.patch('/api/tasks/:id', async (req, res) => {
