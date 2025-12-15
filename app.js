@@ -703,6 +703,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
 
+        // --- Auto-Fill Email ---
+        const savedEmail = localStorage.getItem('savedEmail');
+        if (savedEmail) {
+            document.getElementById('login-email').value = savedEmail;
+            document.getElementById('remember-me').checked = true;
+        }
+        // -----------------------
+
         // Toggle Forms
         showRegisterLink.addEventListener('click', (e) => {
             e.preventDefault();
@@ -781,13 +789,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     showNotification('Login successful! Redirecting...', 'success');
 
-                    // Storage Logic
+                    // --- Storage Logic ---
                     if (rememberMe) {
+                        // Persist session + email
                         localStorage.setItem('authToken', data.token);
                         localStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.setItem('savedEmail', email); // Save email for next time
                     } else {
+                        // Session only + clear saved email
                         sessionStorage.setItem('authToken', data.token);
                         sessionStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.removeItem('savedEmail'); // Clear if they unchecked it
                     }
 
                     setTimeout(() => {
