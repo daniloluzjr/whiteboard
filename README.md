@@ -1,6 +1,6 @@
 # Whiteboard Project
 
-**Live Demo:** [https://ourwhiteboard.vercel.app/](https://ourwhiteboard.vercel.app/)  
+**Live Demo:** [https://bit.ly/glasnevinoffice](https://bit.ly/glasnevinoffice)  
 **Source Code:** [https://github.com/daniloluzjr/whiteboard](https://github.com/daniloluzjr/whiteboard)
 
 This is a real-time, collaborative whiteboard application designed for team task management.
@@ -10,8 +10,8 @@ This is a real-time, collaborative whiteboard application designed for team task
 - **Dynamic Task Panels:** Create and manage separate task boards for different teams or projects.
 - **Task Management:** Add, view, and complete tasks within each panel.
 - **Visual Grouping:** Panels are color-coded in pairs (To-Do and Done) for easy identification.
-- **User Status:** (In Development) Real-time user status indicators.
-- **User Authentication:** (In Development) Secure login and registration system.
+- **User Status System (New!):** Real-time status indicators (Available ⚡, Busy ⛔, Meeting 📅, On Call 📞, Away 🚗💨, On Break 🍽️, On Holiday 🏖️).
+- **User Authentication:** Secure login and registration with `@inicare.ie` domain enforcement.
 
 ## Tech Stack
 
