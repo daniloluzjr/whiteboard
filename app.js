@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Status User Logic
         // --- Status Logic ---
+        const statusPopup = document.getElementById('status-popup');
+        let currentDot = null;
         const userStatusList = document.getElementById('user-status-list');
 
         async function loadUsers() {
