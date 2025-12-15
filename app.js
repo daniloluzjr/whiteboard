@@ -467,8 +467,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- HELPERS ---
+    function showNotification(message, type = 'success') {
+        const container = document.getElementById('notification-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `notification-toast ${type}`;
+        toast.innerHTML = `
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.2rem;">&times;</button>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto remove after 3s (animation handles visual ease out)
+        setTimeout(() => {
+            if (toast.parentElement) toast.remove();
+        }, 3000);
+    }
+
     // --- LOGIN LOGIC ---
     if (isLoginPage) {
+        // Auto-Redirect if already logged in
+        const existingToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        if (existingToken) {
+            window.location.href = 'whiteboard.html';
+        }
+
         const loginContainer = document.getElementById('login-container');
         const registerContainer = document.getElementById('register-container');
         const showRegisterLink = document.getElementById('show-register');
@@ -491,7 +517,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Register Logic
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log("Register button clicked");
             const btn = registerForm.querySelector('button');
             const originalText = btn.innerText;
             btn.innerText = "Loading...";
@@ -503,31 +528,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmPassword = document.getElementById('register-confirm-password').value;
 
             if (password !== confirmPassword) {
-                alert("Passwords do not match!");
+                showNotification("Passwords do not match!", 'error');
                 btn.innerText = originalText;
                 btn.disabled = false;
                 return;
             }
 
             try {
-                console.log("Sending register request to:", `${API_URL}/register`);
                 const response = await fetch(`${API_URL}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, email, password })
                 });
-                console.log("Response status:", response.status);
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert('Registration successful! Please login.');
-                    showLoginLink.click();
+                    showNotification('Registration successful! Please login.', 'success');
+                    setTimeout(() => showLoginLink.click(), 1500);
                 } else {
-                    alert(data.error || 'Registration failed');
+                    showNotification(data.error || 'Registration failed', 'error');
                 }
             } catch (error) {
                 console.error("Fetch error:", error);
-                alert('Error connecting to server. check Console for details.');
+                showNotification('Error connecting to server.', 'error');
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
@@ -537,7 +560,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Login Logic
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log("Login button clicked");
             const btn = loginForm.querySelector('button');
             const originalText = btn.innerText;
             btn.innerText = "Loading...";
@@ -545,29 +567,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
 
             try {
-                console.log("Sending login request to:", `${API_URL}/login`);
                 const response = await fetch(`${API_URL}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-                console.log("Response status:", response.status);
                 const data = await response.json();
 
                 if (response.ok) {
-                    console.log("Login success");
-                    localStorage.setItem('authToken', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    window.location.href = 'whiteboard.html';
+                    showNotification('Login successful! Redirecting...', 'success');
+
+                    // Storage Logic
+                    if (rememberMe) {
+                        localStorage.setItem('authToken', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    } else {
+                        sessionStorage.setItem('authToken', data.token);
+                        sessionStorage.setItem('user', JSON.stringify(data.user));
+                    }
+
+                    setTimeout(() => {
+                        window.location.href = 'whiteboard.html';
+                    }, 1000);
                 } else {
-                    console.warn("Login failed:", data.error);
-                    alert(data.error || 'Login failed');
+                    showNotification(data.error || 'Login failed', 'error');
                 }
             } catch (error) {
                 console.error("Fetch error:", error);
-                alert('Error connecting to server. Check Console for details.');
+                showNotification('Error connecting to server.', 'error');
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;

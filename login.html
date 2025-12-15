@@ -80,6 +80,13 @@
         <form id="login-form">
             <input type="email" id="login-email" placeholder="Email" required>
             <input type="password" id="login-password" placeholder="Password" required>
+
+            <div class="remember-me-container"
+                style="display: flex; align-items: center; margin-bottom: 20px; gap: 8px; justify-content: flex-start;">
+                <input type="checkbox" id="remember-me" style="width: auto; margin: 0;">
+                <label for="remember-me" style="cursor: pointer; font-size: 0.9rem; color: #555;">Remember me</label>
+            </div>
+
             <button type="submit">Login</button>
         </form>
         <a id="show-register" class="toggle-link">Don't have an account? Register</a>
@@ -96,6 +103,9 @@
         </form>
         <a id="show-login" class="toggle-link">Already have an account? Login</a>
     </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
 
     <script src="app.js"></script>
     <!-- Force Update -->
