@@ -375,28 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return li;
         }
 
-        // --- Event Listeners (User Status) ---
-        statusDots.forEach(dot => {
-            dot.addEventListener('click', (e) => {
-                e.stopPropagation();
-                currentDot = e.target;
-                const rect = currentDot.getBoundingClientRect();
-                statusPopup.style.left = `${rect.right + 10}px`;
-                statusPopup.style.top = `${rect.top}px`;
-                statusPopup.classList.remove('hidden');
-            });
-        });
 
-        statusPopup.querySelectorAll('li').forEach(item => {
-            item.addEventListener('click', () => {
-                if (currentDot) {
-                    const newStatus = item.dataset.status;
-                    currentDot.classList.remove('status-free', 'status-busy', 'status-meeting', 'status-on-call', 'status-away');
-                    currentDot.classList.add(`status-${newStatus}`);
-                    statusPopup.classList.add('hidden');
-                }
-            });
-        });
 
         window.addEventListener('click', () => {
             if (!statusPopup.classList.contains('hidden')) {
