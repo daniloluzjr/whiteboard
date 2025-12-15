@@ -41,10 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     li.style.cursor = 'pointer';
                     li.onclick = (e) => {
                         e.stopPropagation();
-                        // Position popup near the click
-                        const rect = li.getBoundingClientRect();
+                        // Position popup near the click (Relative to the NAME text, not the full row)
+                        const textSpan = li.querySelector('span:last-child');
+                        const rect = textSpan.getBoundingClientRect();
                         statusPopup.style.top = `${rect.top}px`;
-                        statusPopup.style.left = `${rect.right + 2}px`;
+                        statusPopup.style.left = `${rect.right + 10}px`; // Add small gap
                         statusPopup.classList.remove('hidden');
                         currentDot = li.querySelector('.status-dot'); // Reference for local update
                     };
