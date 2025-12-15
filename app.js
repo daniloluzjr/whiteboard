@@ -43,13 +43,47 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentTaskData = null;
 
         // --- Initialization ---
-        loadGroups();
+        initializeBoard();
 
         // Auto-Refresh every 5 minutes (300,000 ms)
         setInterval(() => {
             console.log("Auto-refreshing tasks...");
             loadGroups();
         }, 300000);
+
+        async function initializeBoard() {
+            await setupFixedGroups();
+            loadGroups();
+        }
+
+        async function setupFixedGroups() {
+            // Ensure fixed groups exist in DB and update DOM with their real IDs
+            const groups = await fetchGroups();
+
+            const fixedDefs = [
+                { name: 'Coordinators', selector: '[data-group="coordinators"]' },
+                { name: 'Supervisors', selector: '[data-group="supervisors"]' }
+            ];
+
+            for (const def of fixedDefs) {
+                let dbGroup = groups.find(g => g.name === def.name);
+
+                // If not found, create them to avoid 500 errors.
+                if (!dbGroup) {
+                    console.log(`Creating missing fixed group: ${def.name}`);
+                    dbGroup = await createGroupAPI(def.name, 'gray');
+                }
+
+                if (dbGroup) {
+                    // Update all cards that were hardcoded with the string ID
+                    const cards = document.querySelectorAll(def.selector);
+                    cards.forEach(card => {
+                        card.dataset.group = dbGroup.id; // Set REAL NUMERIC ID
+                        card.classList.remove('hidden');
+                    });
+                }
+            }
+        }
 
         // --- API Interactions ---
         async function fetchGroups() {
@@ -131,12 +165,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Rendering Logic ---
         async function loadGroups() {
-            // Remove only dynamic groups (those without the non-deletable class)
+            const groups = await fetchGroups();
+
+            // Identify Fixed Group IDs
+            const coordGroup = groups.find(g => g.name === 'Coordinators');
+            const superGroup = groups.find(g => g.name === 'Supervisors');
+            const fixedIds = [coordGroup?.id, superGroup?.id].filter(id => id);
+
+            // 1. Clear tasks from FIXED cards
+            document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
+
+            // 2. Remove DYNAMIC cards (those that are not in fixedIds)
             const dynamicCards = document.querySelectorAll('.task-card:not(.non-deletable)');
             dynamicCards.forEach(card => card.remove());
 
-            const groups = await fetchGroups();
-            groups.forEach(group => renderGroup(group));
+            // 3. Render Groups
+            groups.forEach(group => {
+                if (fixedIds.includes(group.id)) {
+                    // It's a fixed group, just render its tasks into existing DOM
+                    renderFixedGroupTasks(group);
+                } else {
+                    // It's a dynamic group, create full card
+                    renderGroup(group);
+                }
+            });
+        }
+
+        function renderFixedGroupTasks(group) {
+            // Find the DOM elements for this group (now using ID match)
+            const todoCard = document.querySelector(`.task-card[data-group="${group.id}"][data-type="todo"]`);
+            const doneCard = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"]`);
+
+            if (todoCard && doneCard) {
+                const todoList = todoCard.querySelector('ul');
+                const doneList = doneCard.querySelector('ul');
+
+                group.tasks.forEach(task => {
+                    const taskEl = createTaskElement(task);
+                    if (task.status === 'done') {
+                        doneList.appendChild(taskEl);
+                    } else {
+                        todoList.appendChild(taskEl);
+                    }
+                });
+            }
         }
 
         // --- Logout Logic ---
