@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return false;
             }
         }
-        
+
         async function updateTaskStatusAPI(taskId, status, solution = null) {
             const body = { status };
             if (solution !== null) body.solution = solution;
@@ -406,6 +406,8 @@ document.addEventListener('DOMContentLoaded', () => {
             li.dataset.completionDate = task.completed_at || '';
             li.dataset.priority = task.priority;
             li.dataset.title = task.title;
+            li.dataset.solution = task.solution || '';
+            li.dataset.created_by = task.created_by || ''; // Store ownership info
 
             const creationDate = new Date(task.created_at).toLocaleDateString('pt-BR');
             const completionInfo = task.completed_at
@@ -465,7 +467,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     created_at: li.dataset.creationDate,
                     completed_at: li.dataset.completionDate,
                     priority: li.dataset.priority,
-                    status: card.dataset.type === 'done' ? 'done' : 'todo'
+                    status: card.dataset.type === 'done' ? 'done' : 'todo',
+                    solution: li.dataset.solution,
+                    created_by: li.dataset.created_by // Retrieve ownership info
                 };
 
                 showTaskModal('view');
