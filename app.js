@@ -227,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         async function fetchUsers() {
             try {
                 const response = await fetch(`${API_URL}/users`);
+                if (!response.ok) return [];
                 return await response.json();
             } catch (error) {
                 console.error(error);

@@ -157,6 +157,12 @@ console.log('---------------------------');
 pool.getConnection()
     .then(connection => {
         console.log('Successfully connected to the database.');
+
+        // Auto-Migration: Ensure status column exists
+        connection.query("ALTER TABLE users ADD COLUMN status VARCHAR(50) DEFAULT 'free'")
+            .then(() => console.log('Schema verification: status column ensured.'))
+            .catch(() => console.log('Schema verification: status column likely exists.'));
+
         connection.release();
     })
     .catch(err => {
