@@ -214,9 +214,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function createTaskAPI(task) {
             try {
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
                 const response = await fetch(`${API_URL}/tasks`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify(task)
                 });
                 if (!response.ok) throw new Error('Failed to create task');

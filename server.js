@@ -324,6 +324,24 @@ app.patch('/api/groups/:id', async (req, res) => {
     }
 });
 
+// GET /api/tasks - Retrieve all tasks (optionally filtered by group)
+app.get('/api/tasks', async (req, res) => {
+    const { group_id } = req.query;
+    try {
+        let query = 'SELECT * FROM tasks';
+        const params = [];
+        if (group_id) {
+            query += ' WHERE group_id = ?';
+            params.push(group_id);
+        }
+        query += ' ORDER BY created_at DESC'; // Newest first
+        const [tasks] = await pool.query(query, params);
+        res.json(tasks);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // POST /api/tasks - Create a new task (Authenticated)
 app.post('/api/tasks', async (req, res) => {
     // 1. Get Token from Header
