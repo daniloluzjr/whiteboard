@@ -273,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
             li.dataset.creationDate = task.created_at;
             li.dataset.completionDate = task.completed_at || '';
             li.dataset.priority = task.priority;
+            li.dataset.title = task.title;
 
             const creationDate = new Date(task.created_at).toLocaleDateString('pt-BR');
             const completionInfo = task.completed_at
@@ -493,41 +494,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 // --- Duplicate Check ---
                 const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
                 if (groupCard) {
-                    const existingTasks = groupCard.querySelectorAll('li span:last-child');
-                    let isDuplicate = false;
-                    existingTasks.forEach(span => {
-                        // Check only the title part, ignoring completion date info
-                        const existingTitle = span.firstChild ? span.firstChild.textContent.trim() : span.innerText.split(' - ')[0].trim();
-                        if (existingTitle.toLowerCase() === title.toLowerCase()) {
-                            isDuplicate = true;
+                    if (groupCard) {
+                        const existingLis = groupCard.querySelectorAll('li');
+                        let isDuplicate = false;
+                        existingLis.forEach(li => {
+                            const existingTitle = li.dataset.title || li.querySelector('span:last-child').innerText.split(' - ')[0].trim(); // Fallback
+                            if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
+                                isDuplicate = true;
+                            }
+                        });
+
+                        if (isDuplicate) {
+                            showNotification('Task with this name already exists in this group!', 'error');
+                            return; // Stop creation
                         }
+                    }
+                    // -----------------------
+
+                    const newTask = await createTaskAPI({
+                        group_id: activeGroupId,
+                        title: title,
+                        description: text,
+                        priority: priority,
+                        status: 'todo'
                     });
 
-                    if (isDuplicate) {
-                        showNotification('Task with this name already exists in this group!', 'error');
-                        return; // Stop creation
+                    if (newTask) {
+                        const todoCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
+                        if (todoCard) {
+                            const ul = todoCard.querySelector('ul');
+                            ul.appendChild(createTaskElement(newTask));
+                        }
+                        hideTaskModal();
                     }
                 }
-                // -----------------------
-
-                const newTask = await createTaskAPI({
-                    group_id: activeGroupId,
-                    title: title,
-                    description: text,
-                    priority: priority,
-                    status: 'todo'
-                });
-
-                if (newTask) {
-                    const todoCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
-                    if (todoCard) {
-                        const ul = todoCard.querySelector('ul');
-                        ul.appendChild(createTaskElement(newTask));
-                    }
-                    hideTaskModal();
-                }
-            }
-        });
+            });
 
         completeTaskBtn.addEventListener('click', async () => {
             if (currentTaskData && currentTaskData.id) {
