@@ -76,17 +76,16 @@ app.post('/api/login', async (req, res) => {
 
 // Database Connection Pool
 const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: 4000, // TiDB requires port 4000
+    host: process.env.DB_HOST || process.env.MYSQLHOST,
+    user: process.env.DB_USER || process.env.MYSQLUSER,
+    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD,
+    database: process.env.DB_NAME || process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE,
+    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
     ssl: {
-        minVersion: 'TLSv1.2',
-        rejectUnauthorized: false // Allow connection even if local certs are missing
+        rejectUnauthorized: false // Keep lenient for cloud DBs
     }
 });
 
@@ -106,6 +105,55 @@ pool.getConnection()
     .catch(err => {
         console.error('Error connecting to the database:', err);
     });
+
+// --- Setup Route (Run once to create tables) ---
+app.get('/api/setup', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+
+        // Users Table
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Task Groups Table
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS task_groups (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                color VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Tasks Table
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                group_id INT,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                priority VARCHAR(50),
+                status VARCHAR(50) DEFAULT 'todo',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP NULL,
+                FOREIGN KEY (group_id) REFERENCES task_groups(id) ON DELETE CASCADE
+            )
+        `);
+
+        connection.release();
+        res.send('✅ Database setup completed! Tables created.');
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('❌ Setup failed: ' + error.message);
+    }
+});
 
 // API Routes
 

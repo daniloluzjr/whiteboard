@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration ---
     // Update this URL if your backend is hosted elsewhere
-    const API_URL = 'https://ourwhiteboard.onrender.com/api';
+    const API_URL = 'https://web-production-b230e.up.railway.app/api';
 
     // --- State & DOM Elements ---
     const tasksGrid = document.querySelector('.tasks-grid');
