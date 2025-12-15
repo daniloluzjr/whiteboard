@@ -10,9 +10,9 @@ body {
   background-color: #ffffff;
   color: #212529;
   background-image: url('bg-glasnevin.png');
-  background-position: center bottom;
+  background-position: bottom center;
   background-repeat: no-repeat;
-  background-size: 100% auto;
+  background-size: cover;
   background-attachment: fixed;
 }
 
@@ -521,50 +521,58 @@ body {
 .task-card[data-group="coordinators"] {
   border-top: 5px solid #007bff;
   /* Blue */
-  background-color: rgba(0, 123, 255, 0.05);
+  background-color: #f0f7ff;
+  /* Solid very light blue */
 }
 
 .task-card[data-group="supervisors"] {
   border-top: 5px solid #28a745;
   /* Green */
-  background-color: rgba(40, 167, 69, 0.05);
+  background-color: #f0fff3;
+  /* Solid very light green */
 }
 
 /* Dynamic Group Colors */
 .task-card[data-color="purple"] {
   border-top: 5px solid #6f42c1;
   /* Roxo */
-  background-color: rgba(111, 66, 193, 0.05);
+  background-color: #fbf5ff;
+  /* Solid light purple */
 }
 
 .task-card[data-color="orange"] {
   border-top: 5px solid #fd7e14;
   /* Laranja */
-  background-color: rgba(253, 126, 20, 0.05);
+  background-color: #fff8f2;
+  /* Solid light orange */
 }
 
 .task-card[data-color="cyan"] {
   border-top: 5px solid #17a2b8;
   /* Ciano */
-  background-color: rgba(23, 162, 184, 0.05);
+  background-color: #f2fdff;
+  /* Solid light cyan */
 }
 
 .task-card[data-color="pink"] {
   border-top: 5px solid #e83e8c;
   /* Rosa */
-  background-color: rgba(232, 62, 140, 0.05);
+  background-color: #fff5f9;
+  /* Solid light pink */
 }
 
 .task-card[data-color="yellow"] {
   border-top: 5px solid #ffc107;
   /* Amarelo */
-  background-color: rgba(255, 193, 7, 0.05);
+  background-color: #fffceb;
+  /* Solid light yellow */
 }
 
 .task-card[data-color="green"] {
   border-top: 5px solid #28a745;
   /* Verde */
-  background-color: rgba(40, 167, 69, 0.05);
+  background-color: #f0fff3;
+  /* Solid light green */
 }
 
 /* --- Premium Notifications --- */
