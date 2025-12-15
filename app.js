@@ -241,6 +241,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        async function deleteTaskAPI(taskId) {
+            try {
+                await fetch(`${API_URL}/tasks/${taskId}`, { method: 'DELETE' });
+                return true;
+            } catch (error) {
+                console.error(error);
+                return false;
+            }
+        }
+        
+        async function updateTaskStatusAPI(taskId, status, solution = null) {
+            const body = { status };
+            if (solution !== null) body.solution = solution;
+
+            try {
+                await fetch(`${API_URL}/tasks/${taskId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                return true;
+            } catch (error) {
+                console.error(error);
+                return false;
+            }
+        }
+
         async function fetchUsers() {
             try {
                 const response = await fetch(`${API_URL}/users`);
@@ -497,20 +524,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Confirm Delete Modal ---
         confirmDeleteBtn.addEventListener('click', async () => {
+            // Case 1: Deleting a Group
             if (groupIdToDelete) {
                 const success = await deleteGroupAPI(groupIdToDelete);
                 if (success) {
                     const cards = document.querySelectorAll(`.task-card[data-group="${groupIdToDelete}"]`);
                     cards.forEach(card => card.remove());
                 }
+                groupIdToDelete = null;
             }
+            // Case 2: Deleting a Task (New)
+            else if (window.pendingDeleteTaskId) {
+                const success = await deleteTaskAPI(window.pendingDeleteTaskId); // Need to implement this
+                if (success) {
+                    loadGroups(); // Refresh to remove from UI
+                    showNotification('Task deleted.', 'success');
+                }
+                window.pendingDeleteTaskId = null;
+            }
+
             customConfirmModal.classList.add('hidden');
-            groupIdToDelete = null;
         });
 
         cancelDeleteBtn.addEventListener('click', () => {
             customConfirmModal.classList.add('hidden');
             groupIdToDelete = null;
+            window.pendingDeleteTaskId = null;
         });
 
         // --- Task Modal ---

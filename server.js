@@ -146,6 +146,30 @@ const dbConfig = {
 // Use DATABASE_URL if available (Railway Standard), otherwise use individual params
 const pool = mysql.createPool(process.env.DATABASE_URL || dbConfig);
 
+// --- Setup / Migration Helper ---
+async function runMigrations() {
+    try {
+        // Check if 'solution' column exists
+        const [columns] = await pool.query("SHOW COLUMNS FROM tasks LIKE 'solution'");
+        if (columns.length === 0) {
+            console.log("Migration: Adding 'solution' column to tasks table...");
+            await pool.query("ALTER TABLE tasks ADD COLUMN solution TEXT");
+            console.log("Migration: 'solution' column added.");
+        }
+
+        // Check if 'created_by' column exists
+        const [columnsCreatedBy] = await pool.query("SHOW COLUMNS FROM tasks LIKE 'created_by'");
+        if (columnsCreatedBy.length === 0) {
+            console.log("Migration: Adding 'created_by' column to tasks table...");
+            await pool.query("ALTER TABLE tasks ADD COLUMN created_by INT");
+            console.log("Migration: 'created_by' column added.");
+        }
+    } catch (err) {
+        console.error("Migration warning:", err.message);
+    }
+}
+runMigrations();
+
 // Debug: Check if variables are loaded (Don't log password!)
 console.log('--- DB CONNECTION DEBUG ---');
 console.log('DB_HOST:', process.env.DB_HOST);
@@ -300,13 +324,27 @@ app.patch('/api/groups/:id', async (req, res) => {
     }
 });
 
-// POST /api/tasks - Create a new task
+// POST /api/tasks - Create a new task (Authenticated)
 app.post('/api/tasks', async (req, res) => {
+    // 1. Get Token from Header
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    let created_by = null;
+
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            created_by = decoded.id; // Get user ID from token
+        } catch (err) {
+            console.warn("Invalid token during task creation");
+        }
+    }
+
     const { group_id, title, description, priority, status } = req.body;
     try {
         const [result] = await pool.query(
-            'INSERT INTO tasks (group_id, title, description, priority, status) VALUES (?, ?, ?, ?, ?)',
-            [group_id, title, description, priority, status || 'todo']
+            'INSERT INTO tasks (group_id, title, description, priority, status, created_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [group_id, title, description, priority, status || 'todo', created_by]
         );
         const newTask = {
             id: result.insertId,
@@ -315,6 +353,7 @@ app.post('/api/tasks', async (req, res) => {
             description,
             priority,
             status: status || 'todo',
+            created_by: created_by,
             created_at: new Date()
         };
         res.status(201).json(newTask);
@@ -322,6 +361,11 @@ app.post('/api/tasks', async (req, res) => {
         console.error(error);
         res.status(500).json({ error: 'Failed to create task' });
     }
+});
+    } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to create task' });
+}
 });
 
 // PATCH /api/tasks/:id - Update task (status, completion_at, etc.)
