@@ -125,9 +125,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Rendering Logic ---
         async function loadGroups() {
-            tasksGrid.innerHTML = '';
+            // Remove only dynamic groups (those without the non-deletable class)
+            const dynamicCards = document.querySelectorAll('.task-card:not(.non-deletable)');
+            dynamicCards.forEach(card => card.remove());
+
             const groups = await fetchGroups();
             groups.forEach(group => renderGroup(group));
+        }
+
+        // --- Logout Logic ---
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('authToken');
+                sessionStorage.removeItem('user');
+                window.location.href = 'login.html';
+            });
         }
 
         function renderGroup(group) {
