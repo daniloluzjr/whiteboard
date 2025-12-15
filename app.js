@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Position popup near the click
                         const rect = li.getBoundingClientRect();
                         statusPopup.style.top = `${rect.top}px`;
-                        statusPopup.style.left = `${rect.right + 10}px`;
+                        statusPopup.style.left = `${rect.right + 2}px`;
                         statusPopup.classList.remove('hidden');
                         currentDot = li.querySelector('.status-dot'); // Reference for local update
                     };
