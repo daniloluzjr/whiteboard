@@ -20,6 +20,16 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentDot = null;
         const userStatusList = document.getElementById('user-status-list');
 
+        const statusIcons = {
+            'free': '⚡',
+            'busy': '⛔',
+            'meeting': '📅',
+            'on-call': '📞',
+            'away': '🚗💨',
+            'break': '🍽️',
+            'holiday': '🏖️'
+        };
+
         async function loadUsers() {
             const users = await fetchUsers();
             userStatusList.innerHTML = '';
@@ -34,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 li.innerHTML = `
                     <span class="status-dot status-${user.status || 'free'}"></span>
-                    <span>${displayName} ${isMe ? '(You)' : ''}</span>
+                    <span>${displayName} ${isMe ? '(You)' : ''} ${statusIcons[user.status] || ''}</span>
                 `;
 
                 if (isMe) {
@@ -62,9 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Optimistic UI Update
                 if (currentDot) {
-                    // Remove all known status classes
-                    currentDot.classList.remove('status-free', 'status-busy', 'status-meeting', 'status-on-call', 'status-away', 'status-holiday');
-                    currentDot.classList.add(`status-${newStatus}`);
+                    // Generic update: wipes old status class and adds new one
+                    currentDot.className = `status-dot status-${newStatus}`;
                 }
                 statusPopup.classList.add('hidden');
 
