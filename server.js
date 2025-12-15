@@ -27,6 +27,13 @@ app.post('/api/register', async (req, res) => {
     if (!name || !email || !password) {
         return res.status(400).json({ error: 'All fields are required' });
     }
+
+    // --- Domain Validation ---
+    if (!email.endsWith('@inicare.ie')) {
+        return res.status(400).json({ error: 'Registration allowed only for @inicare.ie emails.' });
+    }
+    // ------------------------
+
     try {
         // Check if user exists
         const [existing] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
@@ -71,6 +78,52 @@ app.post('/api/login', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// --- User Status Routes ---
+
+// GET /api/users - List all users (id, name, status)
+app.get('/api/users', async (req, res) => {
+    try {
+        const [users] = await pool.query('SELECT id, name, email, status FROM users');
+        res.json(users);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+// PATCH /api/users/status - Update own status
+app.patch('/api/users/status', async (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.sendStatus(401);
+
+    jwt.verify(token, JWT_SECRET, async (err, user) => {
+        if (err) return res.sendStatus(403);
+
+        const { status } = req.body;
+        try {
+            await pool.query('UPDATE users SET status = ? WHERE id = ?', [status, user.id]);
+            res.json({ message: 'Status updated' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Failed to update status' });
+        }
+    });
+});
+
+// DELETE /api/users/:id - Delete a user (Admin/Cleanup tool)
+app.delete('/api/users/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM users WHERE id = ?', [id]);
+        res.json({ message: 'User deleted' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to delete user' });
     }
 });
 
@@ -122,9 +175,17 @@ app.get('/api/setup', async (req, res) => {
                 name VARCHAR(255) NOT NULL,
                 email VARCHAR(255) NOT NULL UNIQUE,
                 password_hash VARCHAR(255) NOT NULL,
+                status VARCHAR(50) DEFAULT 'free',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        // Safe Schema Update for existing tables
+        try {
+            await connection.query("ALTER TABLE users ADD COLUMN status VARCHAR(50) DEFAULT 'free'");
+        } catch (e) {
+            // Ignore error if column exists
+        }
 
         // Task Groups Table
         await connection.query(`

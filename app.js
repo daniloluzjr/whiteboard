@@ -15,9 +15,64 @@ document.addEventListener('DOMContentLoaded', () => {
         const dynamicCardColors = ['purple', 'orange', 'cyan', 'pink'];
 
         // Status User Logic
-        const statusDots = document.querySelectorAll('.status-dot');
-        const statusPopup = document.getElementById('status-popup');
-        let currentDot = null;
+        // --- Status Logic ---
+        const userStatusList = document.getElementById('user-status-list');
+
+        async function loadUsers() {
+            const users = await fetchUsers();
+            userStatusList.innerHTML = '';
+
+            const currentUser = JSON.parse(localStorage.getItem('user'));
+
+            users.forEach(user => {
+                const li = document.createElement('li');
+                const displayName = user.email.split('@')[0]; // Name from email
+                const isMe = currentUser && user.id === currentUser.id;
+
+                li.innerHTML = `
+                    <span class="status-dot status-${user.status || 'free'}"></span>
+                    <span>${displayName} ${isMe ? '(You)' : ''}</span>
+                `;
+
+                if (isMe) {
+                    li.style.cursor = 'pointer';
+                    li.onclick = (e) => {
+                        e.stopPropagation();
+                        // Position popup near the click
+                        const rect = li.getBoundingClientRect();
+                        statusPopup.style.top = `${rect.top}px`;
+                        statusPopup.style.left = `${rect.right + 10}px`;
+                        statusPopup.classList.remove('hidden');
+                        currentDot = li.querySelector('.status-dot'); // Reference for local update
+                    };
+                }
+
+                userStatusList.appendChild(li);
+            });
+        }
+
+        // Popup Selection
+        statusPopup.querySelectorAll('li').forEach(item => {
+            item.addEventListener('click', async () => {
+                const newStatus = item.dataset.status;
+
+                // Optimistic UI Update
+                if (currentDot) {
+                    currentDot.className = `status-dot status-${newStatus}`;
+                }
+                statusPopup.classList.add('hidden');
+
+                // API Call
+                await updateUserStatusAPI(newStatus);
+                loadUsers(); // Refresh list to confirm
+            });
+        });
+
+        window.addEventListener('click', () => {
+            if (!statusPopup.classList.contains('hidden')) {
+                statusPopup.classList.add('hidden');
+            }
+        });
 
         // Modal Elements
         const customConfirmModal = document.getElementById('custom-confirm-modal');
@@ -50,11 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(() => {
             console.log("Auto-refreshing tasks...");
             loadGroups();
+            loadUsers(); // NEW: Refresh users
         }, 300000);
 
         async function initializeBoard() {
             await setupFixedGroups();
             loadGroups();
+            loadUsers(); // NEW: Load users
         }
 
         async function setupFixedGroups() {
@@ -157,6 +214,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updates)
+                });
+                return true;
+            } catch (error) {
+                console.error(error);
+                return false;
+            }
+        }
+
+        async function fetchUsers() {
+            try {
+                const response = await fetch(`${API_URL}/users`);
+                return await response.json();
+            } catch (error) {
+                console.error(error);
+                return [];
+            }
+        }
+
+        async function updateUserStatusAPI(status) {
+            const token = localStorage.getItem('authToken');
+            try {
+                await fetch(`${API_URL}/users/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status })
                 });
                 return true;
             } catch (error) {
