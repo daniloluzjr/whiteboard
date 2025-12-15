@@ -1,3 +1,4 @@
+// Last Updated: Just Now
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration ---
     // Update this URL if your backend is hosted elsewhere
