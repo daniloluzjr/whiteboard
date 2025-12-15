@@ -45,6 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Initialization ---
         loadGroups();
 
+        // Auto-Refresh every 5 minutes (300,000 ms)
+        setInterval(() => {
+            console.log("Auto-refreshing tasks...");
+            loadGroups();
+        }, 300000);
+
         // --- API Interactions ---
         async function fetchGroups() {
             try {
@@ -410,6 +416,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const priority = document.querySelector('input[name="priority"]:checked').value;
 
             if (title && activeGroupId) {
+                // --- Duplicate Check ---
+                const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
+                if (groupCard) {
+                    const existingTasks = groupCard.querySelectorAll('li span:last-child');
+                    let isDuplicate = false;
+                    existingTasks.forEach(span => {
+                        // Check only the title part, ignoring completion date info
+                        const existingTitle = span.firstChild ? span.firstChild.textContent.trim() : span.innerText.split(' - ')[0].trim();
+                        if (existingTitle.toLowerCase() === title.toLowerCase()) {
+                            isDuplicate = true;
+                        }
+                    });
+
+                    if (isDuplicate) {
+                        showNotification('Task with this name already exists in this group!', 'error');
+                        return; // Stop creation
+                    }
+                }
+                // -----------------------
+
                 const newTask = await createTaskAPI({
                     group_id: activeGroupId,
                     title: title,
@@ -431,16 +457,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         completeTaskBtn.addEventListener('click', async () => {
             if (currentTaskData && currentTaskData.id) {
+                // MySQL Friendly Date Format: YYYY-MM-DD HH:MM:SS
                 const now = new Date();
+                const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
+
                 const success = await updateTaskAPI(currentTaskData.id, {
                     status: 'done',
-                    completed_at: now.toISOString()
+                    completed_at: mysqlDate
                 });
 
                 if (success) {
                     const oldLi = document.querySelector(`li[data-id="${currentTaskData.id}"]`);
                     if (oldLi) {
-                        oldLi.dataset.completionDate = now.toISOString();
+                        oldLi.dataset.completionDate = mysqlDate;
                         const titleSpan = oldLi.querySelector('span:last-child');
                         const title = titleSpan.innerText.split(' - ')[0]; // Basic parse
                         const dateStr = now.toLocaleDateString('en-US');
@@ -456,6 +485,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     hideTaskModal();
+                    showNotification('Task marked as done!', 'success');
+                } else {
+                    showNotification('Failed to update task status.', 'error');
                 }
             }
         });
