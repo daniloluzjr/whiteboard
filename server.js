@@ -29,7 +29,7 @@ app.post('/api/register', async (req, res) => {
     }
 
     // --- Domain Validation ---
-    if (!email.endsWith('@inicare.ie')) {
+    if (!email.endsWith('@iniscare.ie')) {
         return res.status(400).json({ error: 'Please sign up using your corporate email address.' });
     }
     // ------------------------
