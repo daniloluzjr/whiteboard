@@ -75,19 +75,23 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Database Connection Pool
-const pool = mysql.createPool({
-    host: process.env.DB_HOST || process.env.MYSQLHOST,
-    user: process.env.DB_USER || process.env.MYSQLUSER,
-    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD,
+// Database Connection Configuration
+const dbConfig = {
+    host: process.env.DB_HOST || process.env.MYSQLHOST || process.env.MYSQL_HOST,
+    user: process.env.DB_USER || process.env.MYSQLUSER || process.env.MYSQL_USER,
+    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD,
     database: process.env.DB_NAME || process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE,
-    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
+    port: process.env.DB_PORT || process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
     ssl: {
-        rejectUnauthorized: false // Keep lenient for cloud DBs
+        rejectUnauthorized: false
     }
-});
+};
+
+// Use DATABASE_URL if available (Railway Standard), otherwise use individual params
+const pool = mysql.createPool(process.env.DATABASE_URL || dbConfig);
 
 // Debug: Check if variables are loaded (Don't log password!)
 console.log('--- DB CONNECTION DEBUG ---');
@@ -151,7 +155,20 @@ app.get('/api/setup', async (req, res) => {
         res.send('✅ Database setup completed! Tables created.');
     } catch (error) {
         console.error(error);
-        res.status(500).send('❌ Setup failed: ' + error.message);
+
+        // Prepare Debug Info (HIDE PASSWORD)
+        const debugInfo = {
+            message: error.message,
+            code: error.code,
+            env: {
+                DB_HOST: process.env.DB_HOST || 'undefined',
+                MYSQLHOST: process.env.MYSQLHOST || 'undefined',
+                MYSQL_HOST: process.env.MYSQL_HOST || 'undefined',
+                DATABASE_URL_EXISTS: !!process.env.DATABASE_URL
+            }
+        };
+
+        res.status(500).json({ error: 'Setup failed', details: debugInfo });
     }
 });
 
