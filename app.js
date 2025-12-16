@@ -624,17 +624,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = true);
 
                 // --- DELETE BUTTON LOGIC ---
+                // Simplified: Show for everyone in 'view' mode
                 const deleteBtn = document.getElementById('delete-task-btn');
-                const currentUser = JSON.parse(localStorage.getItem('user'));
-
-                // Debug log
-                console.log('User:', currentUser?.id, 'Creator:', currentTaskData.created_by);
-
-                if (currentUser && currentTaskData.created_by && String(currentUser.id) === String(currentTaskData.created_by)) {
-                    deleteBtn.classList.remove('hidden');
-                } else {
-                    deleteBtn.classList.add('hidden');
-                }
+                deleteBtn.classList.remove('hidden');
             }
         }
 
