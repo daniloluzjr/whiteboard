@@ -745,6 +745,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     });
 
+// --- INITIALIZATION ---
+setupFixedGroups();
+loadGroups();
+
+// Auto-refresh every 5 minutes
+setInterval(loadGroups, 300000);
+
+    });
+
 // --- HELPERS ---
 function showNotification(message, type = 'success') {
     const container = document.getElementById('notification-container');
