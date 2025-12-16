@@ -14,6 +14,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const tasksGrid = document.querySelector('.tasks-grid');
         const dynamicCardColors = ['purple', 'orange', 'cyan', 'pink'];
 
+        // --- Mobile Menu Logic ---
+        const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                mobileOverlay.classList.toggle('active');
+            });
+        }
+
+        if (mobileOverlay) {
+            mobileOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                mobileOverlay.classList.remove('active');
+            });
+        }
+
         // Status User Logic
         // --- Status Logic ---
         const statusPopup = document.getElementById('status-popup');

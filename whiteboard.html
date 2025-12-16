@@ -11,6 +11,7 @@
 
 <body>
     <div class="app-container">
+        <div id="mobile-overlay"></div>
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -43,7 +44,8 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <header class="main-header">
+            <header class="main-header" style="display: flex; align-items: center; gap: 15px;">
+                <button id="mobile-menu-toggle" class="mobile-menu-btn hidden-desktop">☰</button>
                 <h1>Whiteboard</h1>
             </header>
             <section class="tasks-grid">

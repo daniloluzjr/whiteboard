@@ -794,3 +794,69 @@ body {
 .admin-table tr:hover {
   background-color: #f1f1f1;
 }
+
+/* --- Mobile Responsiveness --- */
+/* Hide Mobile Button on Desktop */
+.mobile-menu-btn {
+  display: none;
+  font-size: 1.5rem;
+  background: none;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  color: #212529;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Overlay for Sidebar */
+  #mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    display: none;
+  }
+
+  #mobile-overlay.active {
+    display: block;
+  }
+
+  .tasks-grid {
+    grid-template-columns: 1fr;
+    padding-bottom: 80px;
+  }
+
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
