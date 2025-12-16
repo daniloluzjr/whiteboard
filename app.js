@@ -743,14 +743,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-    });
 
-// --- INITIALIZATION ---
-setupFixedGroups();
-loadGroups();
 
-// Auto-refresh every 5 minutes
-setInterval(loadGroups, 300000);
+        // --- INITIALIZATION ---
+        setupFixedGroups();
+        loadGroups();
+
+        // Auto-refresh every 5 minutes
+        setInterval(loadGroups, 300000);
 
     });
 
