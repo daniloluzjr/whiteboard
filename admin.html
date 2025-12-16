@@ -5,70 +5,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Whiteboard Admin</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      background: #f4f4f9;
-    }
-
-    h1 {
-      color: #333;
-    }
-
-    .section {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-
-    th,
-    td {
-      text-align: left;
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-    }
-
-    th {
-      background-color: #007bff;
-      color: white;
-    }
-
-    tr:hover {
-      background-color: #f1f1f1;
-    }
-
-    .refresh-btn {
-      background: #28a745;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-
-    .refresh-btn:hover {
-      background: #218838;
-    }
-  </style>
+  <link rel="stylesheet" href="app.css">
 </head>
 
-<body>
+<body class="admin-body">
   <h1>🛠️ Admin Dashboard</h1>
   <button onclick="loadData()" class="refresh-btn">Refresh Data</button>
 
-  <div class="section">
+  <div class="admin-section">
     <h2>Users</h2>
-    <table id="users-table">
+    <table id="users-table" class="admin-table">
       <thead>
         <tr>
           <th>ID</th>
@@ -84,9 +30,9 @@
     </table>
   </div>
 
-  <div class="section">
+  <div class="admin-section">
     <h2>All Tasks</h2>
-    <table id="tasks-table">
+    <table id="tasks-table" class="admin-table">
       <thead>
         <tr>
           <th>ID</th>
@@ -107,6 +53,43 @@
   <script>
     const API_URL = 'https://web-production-b230e.up.railway.app/api';
 
+    // Explicitly attach to window to ensure global scope access
+    window.deleteUser = async function (id) {
+      console.log('Attempting to delete user:', id);
+      if (confirm('Are you certain you want to delete this user? This cannot be undone.')) {
+        try {
+          const res = await fetch(`${API_URL}/users/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            alert('User deleted.');
+            loadData();
+          } else {
+            alert('Failed to delete user.');
+          }
+        } catch (e) {
+          alert('Error deleting user: ' + e.message);
+          console.error(e);
+        }
+      }
+    };
+
+    window.deleteTask = async function (id) {
+      console.log('Attempting to delete task:', id);
+      if (confirm('Are you certain you want to delete this task?')) {
+        try {
+          const res = await fetch(`${API_URL}/tasks/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            alert('Task deleted.');
+            loadData();
+          } else {
+            alert('Failed to delete task.');
+          }
+        } catch (e) {
+          alert('Error deleting task: ' + e.message);
+          console.error(e);
+        }
+      }
+    };
+
     async function loadData() {
       // Load Users
       try {
@@ -119,7 +102,7 @@
                         <td>${u.email}</td>
                         <td>${u.status || 'free'}</td>
                         <td>
-                            <button onclick="deleteUser(${u.id})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
+                            <button onclick="deleteUser('${u.id}')" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
                         </td>
                     </tr>
                 `).join('');
@@ -143,7 +126,7 @@
                          <td>${t.created_by || 'NULL'}</td> 
                         <td>${new Date(t.created_at).toLocaleString()}</td>
                         <td>
-                            <button onclick="deleteTask(${t.id})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
+                            <button onclick="deleteTask('${t.id}')" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
                         </td>
                     </tr>
                 `).join('');
