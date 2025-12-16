@@ -46,7 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'on-call': '📞',
             'away': '🚗💨',
             'break': '🍽️',
-            'holiday': '🏖️'
+            'holiday': '🏖️',
+            'offline': '💤'
         };
 
         async function loadUsers() {
