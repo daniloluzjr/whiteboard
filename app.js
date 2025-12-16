@@ -578,6 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('solution-label').classList.add('hidden');
                 document.getElementById('task-solution-input').classList.add('hidden');
                 document.getElementById('task-solution-input').value = '';
+                document.getElementById('delete-task-btn').classList.add('hidden'); // Fix: Ensure delete button is hidden
             } else if (mode === 'view') {
                 taskModalTitle.textContent = 'Task Details';
                 taskTitleInput.value = currentTaskData.title;
@@ -695,208 +696,196 @@ document.addEventListener('DOMContentLoaded', () => {
                 // MySQL Friendly Date Format: YYYY-MM-DD HH:MM:SS
                 const now = new Date();
                 const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
+                const solution = document.getElementById('task-solution-input').value.trim();
 
                 const success = await updateTaskAPI(currentTaskData.id, {
                     status: 'done',
-                    completed_at: mysqlDate
-                });
-
-                if (success) {
-                    const oldLi = document.querySelector(`li[data-id="${currentTaskData.id}"]`);
-                    if (oldLi) {
-                        oldLi.dataset.completionDate = mysqlDate;
-                        const titleSpan = oldLi.querySelector('span:last-child');
-                        const title = titleSpan.innerText.split(' - ')[0]; // Basic parse
-                        const dateStr = now.toLocaleDateString('en-US');
-                        titleSpan.innerHTML = `${title} - <em>completed on ${dateStr}</em>`;
-
-                        const card = oldLi.closest('.task-card');
-                        if (card) {
-                            const groupId = card.dataset.group;
-                            const doneCard = document.querySelector(`.task-card[data-group="${groupId}"][data-type="done"]`);
-                            if (doneCard) {
-                                doneCard.querySelector('ul').appendChild(oldLi);
-                            }
+                    if(card) {
+                        const groupId = card.dataset.group;
+                        const doneCard = document.querySelector(`.task-card[data-group="${groupId}"][data-type="done"]`);
+                        if (doneCard) {
+                            doneCard.querySelector('ul').appendChild(oldLi);
                         }
                     }
+                }
                     hideTaskModal();
-                    showNotification('Task marked as done!', 'success');
-                } else {
-                    showNotification('Failed to update task status.', 'error');
-                }
+                showNotification('Task marked as done!', 'success');
+            } else {
+                showNotification('Failed to update task status.', 'error');
             }
+        }
         });
 
-        filterInput.addEventListener('input', () => {
-            const filterText = filterInput.value.toLowerCase().trim();
-            const allCards = document.querySelectorAll('.task-card');
-            const groupsToShow = new Set();
+filterInput.addEventListener('input', () => {
+    const filterText = filterInput.value.toLowerCase().trim();
+    const allCards = document.querySelectorAll('.task-card');
+    const groupsToShow = new Set();
 
-            allCards.forEach(card => {
-                const title = card.querySelector('h3').textContent.toLowerCase();
-                if (title.includes(filterText)) {
-                    groupsToShow.add(card.dataset.group);
-                }
-            });
+    allCards.forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        if (title.includes(filterText)) {
+            groupsToShow.add(card.dataset.group);
+        }
+    });
 
-            allCards.forEach(card => {
-                if (groupsToShow.has(card.dataset.group)) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
+    allCards.forEach(card => {
+        if (groupsToShow.has(card.dataset.group)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
     }
 
-    // --- HELPERS ---
-    function showNotification(message, type = 'success') {
-        const container = document.getElementById('notification-container');
-        if (!container) return;
+// --- HELPERS ---
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
 
-        const toast = document.createElement('div');
-        toast.className = `notification-toast ${type}`;
-        toast.innerHTML = `
+    const toast = document.createElement('div');
+    toast.className = `notification-toast ${type}`;
+    toast.innerHTML = `
             <span>${message}</span>
             <button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.2rem;">&times;</button>
         `;
 
-        container.appendChild(toast);
+    container.appendChild(toast);
 
-        // Auto remove after 3s (animation handles visual ease out)
-        setTimeout(() => {
-            if (toast.parentElement) toast.remove();
-        }, 3000);
+    // Auto remove after 3s (animation handles visual ease out)
+    setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+    }, 3000);
+}
+
+// --- LOGIN LOGIC ---
+if (isLoginPage) {
+    // Auto-Redirect if already logged in
+    const existingToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (existingToken) {
+        window.location.href = 'whiteboard.html';
     }
 
-    // --- LOGIN LOGIC ---
-    if (isLoginPage) {
-        // Auto-Redirect if already logged in
-        const existingToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        if (existingToken) {
-            window.location.href = 'whiteboard.html';
-        }
+    const loginContainer = document.getElementById('login-container');
+    const registerContainer = document.getElementById('register-container');
+    const showRegisterLink = document.getElementById('show-register');
+    const showLoginLink = document.getElementById('show-login');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
 
-        const loginContainer = document.getElementById('login-container');
-        const registerContainer = document.getElementById('register-container');
-        const showRegisterLink = document.getElementById('show-register');
-        const showLoginLink = document.getElementById('show-login');
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-
-        // --- Auto-Fill Email ---
-        const savedEmail = localStorage.getItem('savedEmail');
-        if (savedEmail) {
-            document.getElementById('login-email').value = savedEmail;
-            document.getElementById('remember-me').checked = true;
-        }
-        // -----------------------
-
-        // Toggle Forms
-        showRegisterLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginContainer.classList.add('hidden');
-            registerContainer.classList.remove('hidden');
-        });
-        showLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerContainer.classList.add('hidden');
-            loginContainer.classList.remove('hidden');
-        });
-
-        // Register Logic
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = registerForm.querySelector('button');
-            const originalText = btn.innerText;
-            btn.innerText = "Loading...";
-            btn.disabled = true;
-
-            const name = document.getElementById('register-name').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('register-confirm-password').value;
-
-            if (password !== confirmPassword) {
-                showNotification("Passwords do not match!", 'error');
-                btn.innerText = originalText;
-                btn.disabled = false;
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    showNotification('Registration successful! Please login.', 'success');
-                    setTimeout(() => showLoginLink.click(), 1500);
-                } else {
-                    showNotification(data.error || 'Registration failed', 'error');
-                }
-            } catch (error) {
-                console.error("Fetch error:", error);
-                showNotification('Error connecting to server.', 'error');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        });
-
-        // Login Logic
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = loginForm.querySelector('button');
-            const originalText = btn.innerText;
-            btn.innerText = "Loading...";
-            btn.disabled = true;
-
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const rememberMe = document.getElementById('remember-me').checked;
-
-            try {
-                const response = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    showNotification('Login successful! Redirecting...', 'success');
-
-                    // --- Storage Logic ---
-                    if (rememberMe) {
-                        // Persist session + email
-                        localStorage.setItem('authToken', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.setItem('savedEmail', email); // Save email for next time
-                    } else {
-                        // Session only + clear saved email
-                        sessionStorage.setItem('authToken', data.token);
-                        sessionStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.removeItem('savedEmail'); // Clear if they unchecked it
-                    }
-
-                    setTimeout(() => {
-                        window.location.href = 'whiteboard.html';
-                    }, 1000);
-                } else {
-                    showNotification(data.error || 'Login failed', 'error');
-                }
-            } catch (error) {
-                console.error("Fetch error:", error);
-                showNotification('Error connecting to server.', 'error');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        });
+    // --- Auto-Fill Email ---
+    const savedEmail = localStorage.getItem('savedEmail');
+    if (savedEmail) {
+        document.getElementById('login-email').value = savedEmail;
+        document.getElementById('remember-me').checked = true;
     }
+    // -----------------------
+
+    // Toggle Forms
+    showRegisterLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginContainer.classList.add('hidden');
+        registerContainer.classList.remove('hidden');
+    });
+    showLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerContainer.classList.add('hidden');
+        loginContainer.classList.remove('hidden');
+    });
+
+    // Register Logic
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = registerForm.querySelector('button');
+        const originalText = btn.innerText;
+        btn.innerText = "Loading...";
+        btn.disabled = true;
+
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-confirm-password').value;
+
+        if (password !== confirmPassword) {
+            showNotification("Passwords do not match!", 'error');
+            btn.innerText = originalText;
+            btn.disabled = false;
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showNotification('Registration successful! Please login.', 'success');
+                setTimeout(() => showLoginLink.click(), 1500);
+            } else {
+                showNotification(data.error || 'Registration failed', 'error');
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            showNotification('Error connecting to server.', 'error');
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    // Login Logic
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = loginForm.querySelector('button');
+        const originalText = btn.innerText;
+        btn.innerText = "Loading...";
+        btn.disabled = true;
+
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const rememberMe = document.getElementById('remember-me').checked;
+
+        try {
+            const response = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showNotification('Login successful! Redirecting...', 'success');
+
+                // --- Storage Logic ---
+                if (rememberMe) {
+                    // Persist session + email
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('savedEmail', email); // Save email for next time
+                } else {
+                    // Session only + clear saved email
+                    sessionStorage.setItem('authToken', data.token);
+                    sessionStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.removeItem('savedEmail'); // Clear if they unchecked it
+                }
+
+                setTimeout(() => {
+                    window.location.href = 'whiteboard.html';
+                }, 1000);
+            } else {
+                showNotification(data.error || 'Login failed', 'error');
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            showNotification('Error connecting to server.', 'error');
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+}
 
 });
