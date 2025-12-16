@@ -624,9 +624,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = true);
 
                 // --- DELETE BUTTON LOGIC ---
-                // Simplified: Show for everyone in 'view' mode
+                // Rule: Button only appears if task is DONE.
                 const deleteBtn = document.getElementById('delete-task-btn');
-                deleteBtn.classList.remove('hidden');
+
+                if (currentTaskData.status === 'done') {
+                    deleteBtn.classList.remove('hidden');
+                } else {
+                    deleteBtn.classList.add('hidden');
+                }
             }
         }
 
