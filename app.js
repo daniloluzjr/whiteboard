@@ -624,14 +624,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = true);
 
                 // --- DELETE BUTTON LOGIC ---
-                // Rule: Button only appears if task is DONE.
+                // Show for ALL existing tasks (ToDo or Done)
+                // Hide only for new tasks (managed by 'create' mode block)
                 const deleteBtn = document.getElementById('delete-task-btn');
-
-                if (currentTaskData.status === 'done') {
-                    deleteBtn.classList.remove('hidden');
-                } else {
-                    deleteBtn.classList.add('hidden');
-                }
+                deleteBtn.classList.remove('hidden');
             }
         }
 
@@ -711,176 +707,193 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        filterInput.addEventListener('input', () => {
-            const filterText = filterInput.value.toLowerCase().trim();
-            const allCards = document.querySelectorAll('.task-card');
-            const groupsToShow = new Set();
+    }
+});
 
-            allCards.forEach(card => {
-                const title = card.querySelector('h3').textContent.toLowerCase();
-                if (title.includes(filterText)) {
-                    groupsToShow.add(card.dataset.group);
-                }
-            });
+// --- DELETE BUTTON LISTENER ---
+const deleteTaskBtn = document.getElementById('delete-task-btn');
+deleteTaskBtn.addEventListener('click', () => {
+    if (currentTaskData && currentTaskData.id) {
+        // Set pending ID for confirmation modal
+        window.pendingDeleteTaskId = currentTaskData.id;
+        // Stronger warning as requested
+        const confirmModalText = document.querySelector('.modal-content p');
+        confirmModalText.innerHTML = 'Are you sure you want to delete this task?<br><br><strong>WARNING: This action cannot be undone. The task will be permanently removed for EVERYONE.</strong>';
+        customConfirmModal.classList.remove('hidden');
+        hideTaskModal(); // Close the task detail modal
+    }
+});
 
-            allCards.forEach(card => {
-                if (groupsToShow.has(card.dataset.group)) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
+filterInput.addEventListener('input', () => {
+    const filterText = filterInput.value.toLowerCase().trim();
+    const allCards = document.querySelectorAll('.task-card');
+    const groupsToShow = new Set();
+
+    allCards.forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        if (title.includes(filterText)) {
+            groupsToShow.add(card.dataset.group);
+        }
+    });
+
+    allCards.forEach(card => {
+        if (groupsToShow.has(card.dataset.group)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
     }
 
-    // --- HELPERS ---
-    function showNotification(message, type = 'success') {
-        const container = document.getElementById('notification-container');
-        if (!container) return;
+// --- HELPERS ---
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
 
-        const toast = document.createElement('div');
-        toast.className = `notification-toast ${type}`;
-        toast.innerHTML = `
+    const toast = document.createElement('div');
+    toast.className = `notification-toast ${type}`;
+    toast.innerHTML = `
             <span>${message}</span>
             <button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.2rem;">&times;</button>
         `;
 
-        container.appendChild(toast);
+    container.appendChild(toast);
 
-        // Auto remove after 3s (animation handles visual ease out)
-        setTimeout(() => {
-            if (toast.parentElement) toast.remove();
-        }, 3000);
+    // Auto remove after 3s (animation handles visual ease out)
+    setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+    }, 3000);
+}
+
+// --- LOGIN LOGIC ---
+if (isLoginPage) {
+    // Auto-Redirect if already logged in
+    const existingToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (existingToken) {
+        window.location.href = 'whiteboard.html';
     }
 
-    // --- LOGIN LOGIC ---
-    if (isLoginPage) {
-        // Auto-Redirect if already logged in
-        const existingToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        if (existingToken) {
-            window.location.href = 'whiteboard.html';
-        }
+    const loginContainer = document.getElementById('login-container');
+    const registerContainer = document.getElementById('register-container');
+    const showRegisterLink = document.getElementById('show-register');
+    const showLoginLink = document.getElementById('show-login');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
 
-        const loginContainer = document.getElementById('login-container');
-        const registerContainer = document.getElementById('register-container');
-        const showRegisterLink = document.getElementById('show-register');
-        const showLoginLink = document.getElementById('show-login');
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-
-        // --- Auto-Fill Email ---
-        const savedEmail = localStorage.getItem('savedEmail');
-        if (savedEmail) {
-            document.getElementById('login-email').value = savedEmail;
-            document.getElementById('remember-me').checked = true;
-        }
-        // -----------------------
-
-        // Toggle Forms
-        showRegisterLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginContainer.classList.add('hidden');
-            registerContainer.classList.remove('hidden');
-        });
-        showLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerContainer.classList.add('hidden');
-            loginContainer.classList.remove('hidden');
-        });
-
-        // Register Logic
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = registerForm.querySelector('button');
-            const originalText = btn.innerText;
-            btn.innerText = "Loading...";
-            btn.disabled = true;
-
-            const name = document.getElementById('register-name').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('register-confirm-password').value;
-
-            if (password !== confirmPassword) {
-                showNotification("Passwords do not match!", 'error');
-                btn.innerText = originalText;
-                btn.disabled = false;
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    showNotification('Registration successful! Please login.', 'success');
-                    setTimeout(() => showLoginLink.click(), 1500);
-                } else {
-                    showNotification(data.error || 'Registration failed', 'error');
-                }
-            } catch (error) {
-                console.error("Fetch error:", error);
-                showNotification('Error connecting to server.', 'error');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        });
-
-        // Login Logic
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = loginForm.querySelector('button');
-            const originalText = btn.innerText;
-            btn.innerText = "Loading...";
-            btn.disabled = true;
-
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const rememberMe = document.getElementById('remember-me').checked;
-
-            try {
-                const response = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    showNotification('Login successful! Redirecting...', 'success');
-
-                    // --- Storage Logic ---
-                    if (rememberMe) {
-                        // Persist session + email
-                        localStorage.setItem('authToken', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.setItem('savedEmail', email); // Save email for next time
-                    } else {
-                        // Session only + clear saved email
-                        sessionStorage.setItem('authToken', data.token);
-                        sessionStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.removeItem('savedEmail'); // Clear if they unchecked it
-                    }
-
-                    setTimeout(() => {
-                        window.location.href = 'whiteboard.html';
-                    }, 1000);
-                } else {
-                    showNotification(data.error || 'Login failed', 'error');
-                }
-            } catch (error) {
-                console.error("Fetch error:", error);
-                showNotification('Error connecting to server.', 'error');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        });
+    // --- Auto-Fill Email ---
+    const savedEmail = localStorage.getItem('savedEmail');
+    if (savedEmail) {
+        document.getElementById('login-email').value = savedEmail;
+        document.getElementById('remember-me').checked = true;
     }
+    // -----------------------
+
+    // Toggle Forms
+    showRegisterLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginContainer.classList.add('hidden');
+        registerContainer.classList.remove('hidden');
+    });
+    showLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerContainer.classList.add('hidden');
+        loginContainer.classList.remove('hidden');
+    });
+
+    // Register Logic
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = registerForm.querySelector('button');
+        const originalText = btn.innerText;
+        btn.innerText = "Loading...";
+        btn.disabled = true;
+
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-confirm-password').value;
+
+        if (password !== confirmPassword) {
+            showNotification("Passwords do not match!", 'error');
+            btn.innerText = originalText;
+            btn.disabled = false;
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showNotification('Registration successful! Please login.', 'success');
+                setTimeout(() => showLoginLink.click(), 1500);
+            } else {
+                showNotification(data.error || 'Registration failed', 'error');
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            showNotification('Error connecting to server.', 'error');
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    // Login Logic
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = loginForm.querySelector('button');
+        const originalText = btn.innerText;
+        btn.innerText = "Loading...";
+        btn.disabled = true;
+
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const rememberMe = document.getElementById('remember-me').checked;
+
+        try {
+            const response = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showNotification('Login successful! Redirecting...', 'success');
+
+                // --- Storage Logic ---
+                if (rememberMe) {
+                    // Persist session + email
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('savedEmail', email); // Save email for next time
+                } else {
+                    // Session only + clear saved email
+                    sessionStorage.setItem('authToken', data.token);
+                    sessionStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.removeItem('savedEmail'); // Clear if they unchecked it
+                }
+
+                setTimeout(() => {
+                    window.location.href = 'whiteboard.html';
+                }, 1000);
+            } else {
+                showNotification(data.error || 'Login failed', 'error');
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            showNotification('Error connecting to server.', 'error');
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+}
 
 });
