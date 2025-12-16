@@ -279,13 +279,23 @@ body {
 .btn-confirm,
 .btn-cancel,
 .btn-save,
-.btn-complete {
+.btn-complete,
+.btn-delete {
   border: none;
   padding: 10px 20px;
   border-radius: 5px;
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.2s;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
 }
 
 .btn-confirm {
