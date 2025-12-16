@@ -707,44 +707,43 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-    }
-});
 
-// --- DELETE BUTTON LISTENER ---
-const deleteTaskBtn = document.getElementById('delete-task-btn');
-deleteTaskBtn.addEventListener('click', () => {
-    if (currentTaskData && currentTaskData.id) {
-        // Set pending ID for confirmation modal
-        window.pendingDeleteTaskId = currentTaskData.id;
-        // Stronger warning as requested
-        const confirmModalText = document.querySelector('.modal-content p');
-        confirmModalText.innerHTML = 'Are you sure you want to delete this task?<br><br><strong>WARNING: This action cannot be undone. The task will be permanently removed for EVERYONE.</strong>';
-        customConfirmModal.classList.remove('hidden');
-        hideTaskModal(); // Close the task detail modal
-    }
-});
+        // --- DELETE BUTTON LISTENER ---
+        const deleteTaskBtn = document.getElementById('delete-task-btn');
+        deleteTaskBtn.addEventListener('click', () => {
+            if (currentTaskData && currentTaskData.id) {
+                // Set pending ID for confirmation modal
+                window.pendingDeleteTaskId = currentTaskData.id;
+                // Stronger warning as requested
+                const confirmModalText = document.querySelector('.modal-content p');
+                confirmModalText.innerHTML = 'Are you sure you want to delete this task?<br><br><strong>WARNING: This action cannot be undone. The task will be permanently removed for EVERYONE.</strong>';
+                customConfirmModal.classList.remove('hidden');
+                hideTaskModal(); // Close the task detail modal
+            }
+        });
 
-filterInput.addEventListener('input', () => {
-    const filterText = filterInput.value.toLowerCase().trim();
-    const allCards = document.querySelectorAll('.task-card');
-    const groupsToShow = new Set();
+        filterInput.addEventListener('input', () => {
+            const filterText = filterInput.value.toLowerCase().trim();
+            const allCards = document.querySelectorAll('.task-card');
+            const groupsToShow = new Set();
 
-    allCards.forEach(card => {
-        const title = card.querySelector('h3').textContent.toLowerCase();
-        if (title.includes(filterText)) {
-            groupsToShow.add(card.dataset.group);
-        }
+            allCards.forEach(card => {
+                const title = card.querySelector('h3').textContent.toLowerCase();
+                if (title.includes(filterText)) {
+                    groupsToShow.add(card.dataset.group);
+                }
+            });
+
+            allCards.forEach(card => {
+                if (groupsToShow.has(card.dataset.group)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
     });
-
-    allCards.forEach(card => {
-        if (groupsToShow.has(card.dataset.group)) {
-            card.style.display = '';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-});
-    }
 
 // --- HELPERS ---
 function showNotification(message, type = 'success') {
