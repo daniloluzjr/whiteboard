@@ -1,4 +1,7 @@
-// Last Updated: Just Now (Cache Fix 03)
+// Last Updated: Debugging
+window.onerror = function (msg, url, line) {
+    alert("Javascript Error: " + msg + "\nLine: " + line);
+};
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration ---
     // Update this URL if your backend is hosted elsewhere
