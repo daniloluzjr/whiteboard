@@ -1,117 +1,129 @@
-# Whiteboard Project
+# Whiteboard Project 📝
 
-**Live Demo:** [https://bit.ly/glasnevinoffice](https://bit.ly/glasnevinoffice)  
-**Source Code:** [https://github.com/daniloluzjr/whiteboard](https://github.com/daniloluzjr/whiteboard)
+**Live Frontend (GitHub Pages):** [https://daniloluzjr.github.io/whiteboard/](https://daniloluzjr.github.io/whiteboard/)  
+**GitHub Repository:** [https://github.com/daniloluzjr/whiteboard](https://github.com/daniloluzjr/whiteboard)  
+**Backend API (Railway):** `https://web-production-b230e.up.railway.app`
 
-This is a real-time, collaborative whiteboard application designed for team task management.
+This is a real-time, collaborative whiteboard application designed for team task management. It separates "To Do" and "Done" tasks into intuitive card groups, providing a visual overview of team activity.
 
-## Features
+---
 
-- **Dynamic Task Panels:** Create and manage separate task boards for different teams or projects.
-- **Task Management:** Add, view, and complete tasks within each panel.
-- **Visual Grouping:** Panels are color-coded in pairs (To-Do and Done) for easy identification.
-- **User Status System (New!):** Real-time status indicators (Available ⚡, Busy ⛔, Meeting 📅, On Call 📞, Away 🚗💨, On Break 🍽️, On Holiday 🏖️).
-- **User Authentication:** Secure login and registration with `@inicare.ie` domain enforcement.
+## 🚀 Deployment Architecture
 
-## Tech Stack
+This project uses a decoupled architecture for maximum stability and free-tier optimization.
 
-- **Frontend:** HTML, CSS, JavaScript (no frameworks)
-- **Backend:** Node.js, Express.js
-- **Database:** MySQL
+### 1. Frontend (Static)
+- **Host:** GitHub Pages
+- **Reason:** Fastest updating, no cold starts, purely static HTML/JS/CSS.
+- **Files:** `index.html` (Redirects to whiteboard), `whiteboard.html`, `login.html`, `admin.html`, `app.js`, `app.css`.
+- **Logic:** `app.js` makes `fetch()` calls to the backend API.
 
-## Getting Started
+### 2. Backend (API)
+- **Host:** Railway (App Service)
+- **Runtime:** Node.js (Express)
+- **Address:** `https://web-production-b230e.up.railway.app`
+- **Logic:** `server.js` handles all business logic, authentication (JWT), and database queries.
+- **Auto-Sleep:** Note that free tiers may spin down. First request might take 3-5 seconds.
+
+### 3. Database
+- **Host:** Railway (MySQL Service)
+- **Type:** MySQL 8.0
+- **Structure:**
+    - `users`: Stores emails, hashed passwords (`bcrypt`), and current status.
+    - `task_groups`: Defines the columns/cards (e.g., Coordinators, Supervisors).
+    - `tasks`: Individual items linked to groups and creators.
+
+---
+
+## ✨ Key Features
+
+### User System
+*   **Authentication:** Secure Login/Register with JWT tokens.
+*   **Domain Lock:** Registration restricted to `@inicare.ie` emails.
+*   **Sessions:** 'Remember Me' uses `localStorage`, otherwise `sessionStorage`.
+*   **Real-Time Status:** Users can set their status (Available ⚡, Busy ⛔, Lunch 🍽️, etc.) visible to all colleagues in the sidebar.
+
+### Task Management
+*   **Card Groups:** Dynamic grouping of tasks.
+    *   **Fixed Groups:** "Coordinators" and "Supervisors" are permanent (cannot be deleted).
+    *   **Dynamic Groups:** Users can create custom groups for temporary projects.
+*   **Task Lifecycle:** Create -> To Do -> Done -> Delete.
+*   **Smart Deletion:**
+    *   **Any User** can delete any task (for flexibility).
+    *   **Safeguard:** A red "Permanent Action" warning modal appears before deletion.
+*   **Admin Dashboard:** (`/admin.html`)
+    *   View all registered users and tasks in a table format.
+    *   Force-delete users or tasks.
+    *   Resolve IDs to real Names for auditing.
+
+---
+
+## 🛠️ Development Guide
 
 ### Prerequisites
+*   Node.js (v18+)
+*   Git
 
-- [Node.js](https://nodejs.org/) (which includes npm)
-- A running MySQL server
+### Setup (Localhost)
 
-### Installation & Setup
-
-1.  **Clone the repository:**
+1.  **Clone the Repo:**
     ```bash
-    git clone <your-repository-url>
-    cd todoweb
+    git clone https://github.com/daniloluzjr/whiteboard.git
+    cd whiteboard
     ```
 
-2.  **Install dependencies:**
+2.  **Install Dependencies:**
     ```bash
     npm install
     ```
 
-3.  **Set up environment variables:**
-
-    Create a file named `.env` in the root of the project by copying the example file:
-
+3.  **Run Backend:**
+    The backend connects to the live Railway DB by default (if env vars are set) or you can set up a local DB.
     ```bash
-    # On Windows (Command Prompt)
-    copy .env.example .env
-
-    # On macOS/Linux
-    cp .env.example .env
+    node server.js
     ```
 
-    Now, open the `.env` file and replace the placeholder values with your actual MySQL database credentials.
-
-    ```
-    DB_HOST=localhost
-    DB_USER=your_mysql_user
-    DB_PASSWORD=your_mysql_password
-    DB_NAME=todoweb_db
+4.  **Run Frontend:**
+    You can simply open `index.html` or `login.html` in your browser, or use a live server:
+    ```bash
+    npx serve .
     ```
 
-4.  **Set up the database:**
+### 🔐 Environment Variables (Backend)
+These are configured in the Railway dashboard. Do not commit `.env` files containing real passwords.
 
-    Connect to your MySQL server and run the following command to create the database:
+```env
+PORT=3000
+DB_HOST=railway-tcp-proxy...
+DB_USER=root
+DB_PASSWORD=...
+DB_NAME=railway
+JWT_SECRET=...
+```
 
-    ```sql
-    CREATE DATABASE IF NOT EXISTS todoweb_db;
-    ```
+---
 
-5.  **Run the application:**
+## 🔄 Updates & Deployment
 
-    You will need two terminals for this project:
+### To Update Frontend:
+1.  Edit `app.js`, `app.css`, or `.html` files.
+2.  Commit and Push to GitHub.
+3.  GitHub Pages updates automatically (wait ~1-2 mins).
+    *   *Tip: Cache can be sticky. Use `Ctrl+F5` to force refresh.*
 
-    -   **Terminal 1: Start the Frontend**
-        This project uses `serve` to run the frontend. If you don't have it, install it globally:
-        ```bash
-        npm install -g serve
-        ```
-        Then, start the frontend server:
-        ```bash
-        serve
-        ```
-        Your frontend will be available at `http://localhost:3000` (or another port if 3000 is busy).
+### To Update Backend:
+1.  Edit `server.js`.
+2.  Commit and Push.
+3.  Railway detects the commit and redeploys the server automatically.
 
-    -   **Terminal 2: Start the Backend**
-        ```bash
-        node server.js
-        ```
-        Your backend will be running on `http://localhost:3000`.
+---
 
-> **Note:** The default port for both `serve` and our backend is `3000`. You will likely need to configure one of them to run on a different port to avoid conflicts. For example, you can run the frontend on port 5000 with `serve -l 5000`.
+## 🚑 Troubleshooting
 
-## Deployment
-
-### Backend (Render)
-1.  Create a new **Web Service** on [Render](https://render.com/).
-2.  Connect your GitHub repository.
-3.  Select **Node** as the runtime.
-4.  Add the following **Environment Variables** (Advanced section):
-    -   `DB_HOST`: Your MySQL Host
-    -   `DB_USER`: Your MySQL User
-    -   `DB_PASSWORD`: Your MySQL Password
-    -   `DB_NAME`: Your MySQL Database Name
-5.  Render will automatically install dependencies (`npm install`) and start the server (`node server.js`).
-
-### Frontend (Vercel)
-### Database Config (Reference)
-**Use these values in your Render Environment Variables or local .env file:**
-
--   **DB_HOST**: `gateway01.eu-central-1.prod.aws.tidbcloud.com`
--   **DB_USER**: `2xJL2J6QqbSD35.root`
--   **DB_PASSWORD**: `b0OwomktiieiPVt`
--   **DB_NAME**: `test` (or your chosen name)
--   **PORT**: `4000` (TiDB Port)
-
-> **IMPORTANT**: Delete this password from the README after configuring Render to keep your project secure!
+*   **White Screen / Loading Forever:**
+    *   Check the browser console (F12).
+    *   API might be sleeping. Wait 10s and refresh.
+*   **"Failed to create task":**
+    *   Check if you are logged in (Session expired?). Re-login.
+*   **Changes not appearing:**
+    *   Clear browser cache or check if you are editing the correct file (local vs live).
