@@ -118,6 +118,9 @@
                         <td>${u.name || '-'}</td>
                         <td>${u.email}</td>
                         <td>${u.status || 'free'}</td>
+                        <td>
+                            <button onclick="deleteUser(${u.id})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
+                        </td>
                     </tr>
                 `).join('');
         document.querySelector('#users-table tbody').innerHTML = userRows;
@@ -137,7 +140,11 @@
                             </span>
                         </td>
                         <td>${t.group_id == 1 ? 'Coordinators' : (t.group_id == 2 ? 'Supervisors' : t.group_id)}</td>
+                         <td>${t.created_by || 'NULL'}</td> 
                         <td>${new Date(t.created_at).toLocaleString()}</td>
+                        <td>
+                            <button onclick="deleteTask(${t.id})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
+                        </td>
                     </tr>
                 `).join('');
         document.querySelector('#tasks-table tbody').innerHTML = taskRows;
