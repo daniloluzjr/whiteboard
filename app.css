@@ -298,6 +298,20 @@ body {
   background-color: #c82333;
 }
 
+.btn-small-delete {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-small-delete:hover {
+  background-color: #c82333;
+}
+
 .btn-confirm {
   background-color: #dc3545;
   /* Red */

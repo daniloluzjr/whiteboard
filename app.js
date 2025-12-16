@@ -1,7 +1,4 @@
-// Last Updated: Debugging
-window.onerror = function (msg, url, line) {
-    alert("Javascript Error: " + msg + "\nLine: " + line);
-};
+// Last Updated: Production Stable
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration ---
     // Update this URL if your backend is hosted elsewhere
@@ -749,11 +746,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         // --- INITIALIZATION ---
-        setupFixedGroups();
-        loadGroups();
+        // --- INITIALIZATION ---
+        (async () => {
+            try {
+                await setupFixedGroups();
+                await loadGroups();
+                await loadUsers(); // Ensure users load too
+            } catch (e) {
+                console.error(e);
+                alert("Init Failed: " + e.message);
+            }
+        })();
 
         // Auto-refresh every 5 minutes
-        setInterval(loadGroups, 300000);
+        setInterval(() => {
+            loadGroups();
+            loadUsers();
+        }, 300000);
 
     }
 
