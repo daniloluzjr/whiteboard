@@ -147,6 +147,19 @@ document.addEventListener('DOMContentLoaded', () => {
             loadUsers(); // NEW: Refresh users
         }, 300000);
 
+        // --- Daily Auto-Logout at 8:30 AM ---
+        setInterval(() => {
+            const now = new Date();
+            // Check if it's 08:30 AM
+            if (now.getHours() === 8 && now.getMinutes() === 30) {
+                alert('Daily Login Refresh (8:30 AM)\nPlease log in again to start your day.');
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('authToken');
+                sessionStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        }, 60000); // Checks every minute
         async function initializeBoard() {
             await setupFixedGroups();
             loadGroups();
@@ -306,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         async function updateUserStatusAPI(status) {
             const token = localStorage.getItem('authToken');
             try {
-                await fetch(`${API_URL}/users/status`, {
+                const response = await fetch(`${API_URL}/users/status`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -314,6 +327,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     body: JSON.stringify({ status })
                 });
+
+                if (response.status === 401) {
+                    alert('Session expired. Please login again.');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+
+                if (!response.ok) throw new Error('Failed to update status');
                 return true;
             } catch (error) {
                 console.error(error);
@@ -778,11 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         })();
 
-        // Auto-refresh every 5 minutes
-        setInterval(() => {
-            loadGroups();
-            loadUsers();
-        }, 300000);
+
 
     }
 
