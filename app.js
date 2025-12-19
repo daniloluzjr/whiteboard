@@ -492,7 +492,13 @@ document.addEventListener('DOMContentLoaded', () => {
             div.dataset.color = group.color;
 
             const titlePrefix = type === 'todo' ? 'To Do' : 'Tasks done';
-            const deleteBtnHTML = `<button class="delete-sticker-btn">&times;</button>`;
+
+            // Failsafe: Never allow delete button for fixed groups even if rendered dynamically
+            let isProtected = group.name.toLowerCase().includes('introduction') ||
+                group.name === 'Coordinators' ||
+                group.name === 'Supervisors';
+
+            const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
             const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
 
             div.innerHTML = `
