@@ -396,12 +396,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function renderIntroductionTasks(group) {
-            const container = document.querySelector(`.task-card[data-group="${group.id}"] ul`);
-            if (!container) return;
+            // Separar tarefas
+            const todoTasks = group.tasks.filter(t => t.status !== 'done');
+            const doneTasks = group.tasks.filter(t => t.status === 'done');
+
+            // Renderizar ToDo
+            const todoContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="todo"] ul`);
+            if (todoContainer) {
+                renderIntroList(todoContainer, todoTasks, group.id);
+            }
+
+            // Renderizar Done
+            const doneContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"] ul`);
+            if (doneContainer) {
+                renderIntroList(doneContainer, doneTasks, group.id);
+            }
+        }
+
+        function renderIntroList(container, tasks, groupId) {
             container.innerHTML = '';
 
             // 1. Sort by scheduled_at ASC
-            const tasks = group.tasks.sort((a, b) => {
+            tasks.sort((a, b) => {
                 const dateA = new Date(a.scheduled_at || '9999-12-31');
                 const dateB = new Date(b.scheduled_at || '9999-12-31');
                 return dateA - dateB;
@@ -411,18 +427,24 @@ document.addEventListener('DOMContentLoaded', () => {
             let lastDateStr = null;
 
             tasks.forEach(task => {
-                if (!task.scheduled_at) return; // Skip if no date (shouldn't happen in this view ideally)
+                if (!task.scheduled_at) {
+                    // Fallback for tasks without date (should be rare in intro)
+                    const taskEl = createTaskElement(task, true);
+                    container.appendChild(taskEl);
+                    return;
+                }
 
                 const dateObj = new Date(task.scheduled_at);
                 const dayStr = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
 
                 if (dayStr !== lastDateStr) {
                     const header = document.createElement('li');
-                    header.style.backgroundColor = '#e0f7fa';
+                    header.style.backgroundColor = 'rgba(23, 162, 184, 0.1)'; // Light cyan match
                     header.style.fontWeight = 'bold';
                     header.style.padding = '5px 10px';
                     header.style.marginTop = '10px';
                     header.style.borderRadius = '4px';
+                    header.style.color = '#117a8b';
                     header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
                     container.appendChild(header);
                     lastDateStr = dayStr;
