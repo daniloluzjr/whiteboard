@@ -185,12 +185,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const fixedDefs = [
                 { name: 'Introduction', selector: '[data-group="introduction"]', color: 'cyan' },
+                { name: 'Introduction (Schedule)', selector: '[data-group="introduction"]', color: 'cyan' },
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' }
             ];
 
             for (const def of fixedDefs) {
+                // Approximate match for Intro to avoid creating duplicates if one exists
                 let dbGroup = groups.find(g => g.name === def.name);
+                if (def.name.startsWith('Introduction')) {
+                    dbGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
+                }
 
                 // If not found, create them to avoid 500 errors.
                 if (!dbGroup) {
@@ -369,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Identify Fixed Group IDs
             const coordGroup = groups.find(g => g.name === 'Coordinators');
             const superGroup = groups.find(g => g.name === 'Supervisors');
-            const introGroup = groups.find(g => g.name === 'Introduction');
+            const introGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
             const fixedIds = [coordGroup?.id, superGroup?.id, introGroup?.id].filter(id => id);
 
             // 1. Clear tasks from FIXED cards
@@ -383,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             groups.forEach(group => {
                 if (fixedIds.includes(group.id)) {
                     // It's a fixed group, just render its tasks into existing DOM
-                    if (group.name === 'Introduction') {
+                    if (group.name === 'Introduction' || group.name === 'Introduction (Schedule)') {
                         renderIntroductionTasks(group);
                     } else {
                         renderFixedGroupTasks(group);
@@ -391,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // It's a dynamic group, create full card
                     // Fix: Prevent 'Introduction' from being rendered as dynamic if it wasn't caught in fixedIds (e.g. slight mismatch)
-                    if (group.name.trim().toLowerCase() === 'introduction') {
+                    if (group.name.trim().toLowerCase().includes('introduction')) {
                         console.log("Found floating Introduction group, forcing render as fixed.");
                         // Force fix locally if needed, or just skip rendering it as dynamic to avoid duplicates
                         renderIntroductionTasks(group);
@@ -449,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dateObj = safeDate(task.scheduled_at);
                 // Check if valid
                 if (isNaN(dateObj.getTime())) {
-                     // Fallback for truly invalid dates
+                    // Fallback for truly invalid dates
                     const taskEl = createTaskElement(task, true);
                     container.appendChild(taskEl);
                     return;
@@ -579,9 +584,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 let timeStr = "--:--";
                 if (task.scheduled_at) {
                     const dateObj = safeDate(task.scheduled_at);
-                     if (!isNaN(dateObj.getTime())) {
+                    if (!isNaN(dateObj.getTime())) {
                         timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                     }
+                    }
                 }
 
                 li.innerHTML = `
