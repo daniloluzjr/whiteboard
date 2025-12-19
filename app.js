@@ -460,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const dayStr = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+                const dayStr = dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit' });
 
                 if (dayStr !== lastDateStr) {
                     const header = document.createElement('li');
@@ -572,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
             li.dataset.created_by = task.created_by || ''; // Store ownership info
             li.dataset.scheduled_at = task.scheduled_at || ''; // Store schedule info
 
-            const creationDate = new Date(task.created_at).toLocaleDateString('pt-BR');
+            const creationDate = new Date(task.created_at).toLocaleDateString('en-GB');
             const completionInfo = task.completed_at
                 ? ` - <span style="font-size: 0.8em; color: #666; font-style: italic;">completed on ${new Date(task.completed_at).toLocaleDateString('en-US')}</span>`
                 : ` - <span style="font-size: 0.8em; color: #666; font-style: italic;">added on ${creationDate}</span>`;
@@ -585,7 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (task.scheduled_at) {
                     const dateObj = safeDate(task.scheduled_at);
                     if (!isNaN(dateObj.getTime())) {
-                        timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        timeStr = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                     }
                 }
 
