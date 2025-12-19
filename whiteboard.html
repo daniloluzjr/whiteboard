@@ -49,6 +49,16 @@
                 <h1>Whiteboard</h1>
             </header>
             <section class="tasks-grid">
+                <!-- Introduction Card (New Feature) -->
+                <div class="task-card non-deletable" data-group="introduction" data-type="todo"
+                    style="border-top-color: #17a2b8; background-color: #e0f7fa;">
+                    <div class="card-header">
+                        <h3>Introduction (Schedule)</h3>
+                        <button class="add-task-item-btn" style="color: #17a2b8;">+</button>
+                    </div>
+                    <ul id="introduction-list"><!-- Tasks grouped by date will go here --></ul>
+                </div>
+
                 <!-- Permanent task cards -->
                 <div class="task-card non-deletable" data-group="coordinators" data-type="todo">
                     <div class="card-header">
@@ -122,7 +132,15 @@
                 <label><input type="radio" name="priority" value="yellow"> <span
                         class="priority-color-dot yellow"></span></label>
             </div>
-            <input type="text" id="task-title-input" placeholder="Task Title" maxlength="100">
+
+            <div id="schedule-container" class="hidden" style="margin-bottom: 15px;">
+                <label for="task-schedule-input"
+                    style="font-weight: bold; display: block; margin-bottom: 5px;">Scheduled Date & Time:</label>
+                <input type="datetime-local" id="task-schedule-input"
+                    style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px;">
+            </div>
+
+            <input type="text" id="task-title-input" placeholder="Task Title (Client Name)" maxlength="100">
             <textarea id="task-text-input" placeholder="Task description..." maxlength="400"></textarea>
 
             <label id="solution-label"
