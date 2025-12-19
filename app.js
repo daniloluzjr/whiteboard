@@ -912,20 +912,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 // -----------------------
 
+                // Format Date for MySQL (YYYY-MM-DD HH:MM:SS)
+                let formattedScheduledAt = null;
+                const rawDate = document.getElementById('task-schedule-input').value;
+                if (rawDate) {
+                    // rawDate is usually YYYY-MM-DDTHH:MM
+                    formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
+                }
+
                 const newTask = await createTaskAPI({
                     group_id: activeGroupId,
                     title: title,
                     description: text,
                     priority: priority,
                     status: 'todo',
-                    scheduled_at: document.getElementById('task-schedule-input').value || null
+                    scheduled_at: formattedScheduledAt // Send formatted date
                 });
 
                 if (newTask) {
                     const todoCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
                     if (todoCard) {
                         const ul = todoCard.querySelector('ul');
-                        ul.appendChild(createTaskElement(newTask));
+                        ul.appendChild(createTaskElement(newTask, activeGroupIsIntro)); // Pass isIntroduction flag!
                     }
                     hideTaskModal();
                 }
