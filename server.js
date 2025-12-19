@@ -17,7 +17,21 @@ app.use(express.json());
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123'; // In production, use .env!
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
+
+// --- Middleware: Authenticate Token ---
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.sendStatus(401);
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403);
+        req.user = user;
+        next();
+    });
+}
 
 // --- Auth Routes ---
 
@@ -95,29 +109,26 @@ app.get('/api/users', async (req, res) => {
 });
 
 // PATCH /api/users/status - Update own status
-app.patch('/api/users/status', async (req, res) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) return res.sendStatus(401);
-
-    jwt.verify(token, JWT_SECRET, async (err, user) => {
-        if (err) return res.sendStatus(403);
-
-        const { status } = req.body;
-        try {
-            await pool.query('UPDATE users SET status = ? WHERE id = ?', [status, user.id]);
-            res.json({ message: 'Status updated' });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Failed to update status' });
-        }
-    });
+app.patch('/api/users/status', authenticateToken, async (req, res) => {
+    const { status } = req.body;
+    try {
+        await pool.query('UPDATE users SET status = ? WHERE id = ?', [status, req.user.id]);
+        res.json({ message: 'Status updated' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to update status' });
+    }
 });
 
 // DELETE /api/users/:id - Delete a user (Admin/Cleanup tool)
-app.delete('/api/users/:id', async (req, res) => {
+app.delete('/api/users/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
+
+    // Optional: Prevent deleting self
+    if (parseInt(id) === req.user.id) {
+        return res.status(400).json({ error: 'Cannot delete yourself' });
+    }
+
     try {
         await pool.query('DELETE FROM users WHERE id = ?', [id]);
         res.json({ message: 'User deleted' });
@@ -203,7 +214,7 @@ app.get('/api/groups', async (req, res) => {
 });
 
 // POST /api/groups - Create a new group
-app.post('/api/groups', async (req, res) => {
+app.post('/api/groups', authenticateToken, async (req, res) => {
     const { name, color } = req.body;
     try {
         const [result] = await pool.query('INSERT INTO task_groups (name, color) VALUES (?, ?)', [name, color]);
@@ -215,7 +226,7 @@ app.post('/api/groups', async (req, res) => {
 });
 
 // DELETE /api/groups/:id - Delete a group and its tasks
-app.delete('/api/groups/:id', async (req, res) => {
+app.delete('/api/groups/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
         await pool.query('DELETE FROM tasks WHERE group_id = ?', [id]);
@@ -228,7 +239,7 @@ app.delete('/api/groups/:id', async (req, res) => {
 });
 
 // PATCH /api/groups/:id - Rename a group
-app.patch('/api/groups/:id', async (req, res) => {
+app.patch('/api/groups/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { name } = req.body;
     try {
@@ -241,20 +252,9 @@ app.patch('/api/groups/:id', async (req, res) => {
 });
 
 // POST /api/tasks - Create a new task (Authenticated)
-app.post('/api/tasks', async (req, res) => {
-    // 1. Get Token from Header
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    let created_by = null;
-
-    if (token) {
-        try {
-            const decoded = jwt.verify(token, JWT_SECRET);
-            created_by = decoded.id; // Get user ID from token
-        } catch (err) {
-            console.warn("Invalid token during task creation");
-        }
-    }
+app.post('/api/tasks', authenticateToken, async (req, res) => {
+    // User is guaranteed to be in req.user by middleware
+    const created_by = req.user.id;
 
     const { group_id, title, description, priority, status, scheduled_at } = req.body;
     try {
@@ -285,7 +285,7 @@ app.post('/api/tasks', async (req, res) => {
 
 
 // PATCH /api/tasks/:id - Update task (status, completion_at, etc.)
-app.patch('/api/tasks/:id', async (req, res) => {
+app.patch('/api/tasks/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { status, completed_at, title, description, priority, group_id, scheduled_at } = req.body;
 
@@ -319,7 +319,7 @@ app.patch('/api/tasks/:id', async (req, res) => {
 });
 
 // DELETE /api/tasks/:id - Delete a task
-app.delete('/api/tasks/:id', async (req, res) => {
+app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
         await pool.query('DELETE FROM tasks WHERE id = ?', [id]);

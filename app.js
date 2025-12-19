@@ -568,19 +568,27 @@ document.addEventListener('DOMContentLoaded', () => {
             li.dataset.priority = task.priority;
             li.dataset.title = task.title;
             li.dataset.solution = task.solution || '';
-            li.dataset.solution = task.solution || '';
-            li.dataset.created_by = task.created_by || ''; // Store ownership info
-            li.dataset.scheduled_at = task.scheduled_at || ''; // Store schedule info
+            li.dataset.created_by = task.created_by || '';
+            li.dataset.scheduled_at = task.scheduled_at || '';
 
             const creationDate = new Date(task.created_at).toLocaleDateString('en-GB');
-            const completionInfo = task.completed_at
-                ? ` - <span style="font-size: 0.8em; color: #666; font-style: italic;">completed on ${new Date(task.completed_at).toLocaleDateString('en-US')}</span>`
-                : ` - <span style="font-size: 0.8em; color: #666; font-style: italic;">added on ${creationDate}</span>`;
 
-            li.innerHTML = `<span class="task-item-priority-dot ${task.priority}"></span><span><strong>${task.title}</strong>${completionInfo}</span>`;
+            // --- Safe Element Creation (Anti-XSS) ---
 
-            // Override for Introduction Mode
+            // Priority Dot
+            const dot = document.createElement('span');
+            dot.className = `task-item-priority-dot ${task.priority}`;
+
+            // Title Container
+            const titleContainer = document.createElement('div');
+            // Check for intro mode (Vertical layout)
             if (isIntroduction) {
+                titleContainer.style.cssText = "display:flex; flex-direction:column; width:100%;";
+
+                // Top Row (Time + Client)
+                const topRow = document.createElement('div');
+                topRow.style.cssText = "display:flex; align-items:center; font-size:1.1em; margin-bottom:2px;";
+
                 let timeStr = "--:--";
                 if (task.scheduled_at) {
                     const dateObj = safeDate(task.scheduled_at);
@@ -589,17 +597,46 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                li.innerHTML = `
-                    <div style="display:flex; flex-direction:column; width:100%;">
-                        <div style="display:flex; align-items:center; font-size:1.1em; margin-bottom:2px;">
-                            <span class="task-item-priority-dot ${task.priority}"></span>
-                            <strong>${timeStr} - ${task.title}</strong>
-                        </div>
-                        <span style="font-size:0.9em; color:#555; margin-left:22px;">Caregiver: ${task.description}</span>
-                    </div>
-                `;
+                // Add Dot to Top Row
+                topRow.appendChild(dot);
+
+                const titleText = document.createElement('strong');
+                titleText.textContent = `${timeStr} - ${task.title}`; // Safe text assignment
+                topRow.appendChild(titleText);
+
+                // Bottom Row (Caregiver)
+                const bottomRow = document.createElement('span');
+                bottomRow.style.cssText = "font-size:0.9em; color:#555; margin-left:22px;";
+                bottomRow.textContent = `Caregiver: ${task.description}`; // Safe text assignment
+
+                titleContainer.appendChild(topRow);
+                titleContainer.appendChild(bottomRow);
+
+                li.appendChild(titleContainer);
+
             } else {
-                li.innerHTML = `<span class="task-item-priority-dot ${task.priority}"></span><span><strong>${task.title}</strong>${completionInfo}</span>`;
+                // Standard Mode (Horizontal)
+                li.style.display = 'flex';
+                li.style.alignItems = 'center';
+
+                li.appendChild(dot);
+
+                const textSpan = document.createElement('span');
+                const titleStrong = document.createElement('strong');
+                titleStrong.textContent = task.title; // Safe
+                textSpan.appendChild(titleStrong);
+
+                // Completion/Creation Date Text
+                const dateText = document.createElement('span');
+                dateText.style.cssText = "font-size: 0.8em; color: #666; font-style: italic;";
+                if (task.completed_at) {
+                    dateText.textContent = ` - completed on ${new Date(task.completed_at).toLocaleDateString('en-US')}`;
+                } else {
+                    dateText.textContent = ` - added on ${creationDate}`;
+                }
+                textSpan.appendChild(dateText);
+
+                li.appendChild(textSpan);
             }
 
             return li;
