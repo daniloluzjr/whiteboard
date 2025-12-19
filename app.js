@@ -189,11 +189,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dbGroup) {
                     // Update all cards that were hardcoded with the string ID
                     const cards = document.querySelectorAll(def.selector);
-                    cards.forEach(card => {
-                        card.dataset.group = dbGroup.id; // Set REAL NUMERIC ID
-                        card.dataset.color = def.color;
-                        card.classList.remove('hidden');
-                    });
+                    if (cards.length > 0) {
+                        cards.forEach(card => {
+                            card.dataset.group = dbGroup.id; // Set REAL NUMERIC ID
+                            card.dataset.color = def.color;
+                            card.classList.remove('hidden');
+                        });
+                    } else {
+                        // Fallback: If for some reason the hardcoded card is missing (or deleted), reload?
+                        // For Introduction, if manual card is missing or dynamic one took over, we must fix standard render.
+                        console.warn(`Hardcoded card for ${def.name} not found, checking if dynamic one exists.`);
+                    }
                 }
             }
         }
@@ -372,7 +378,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } else {
                     // It's a dynamic group, create full card
-                    renderGroup(group);
+                    // Fix: Prevent 'Introduction' from being rendered as dynamic if it wasn't caught in fixedIds (e.g. slight mismatch)
+                    if (group.name.trim().toLowerCase() === 'introduction') {
+                        console.log("Found floating Introduction group, forcing render as fixed.");
+                        // Force fix locally if needed, or just skip rendering it as dynamic to avoid duplicates
+                        renderIntroductionTasks(group);
+                        // Also try to bind the hardcoded card to this ID if not already
+                        const hardcodedCard = document.querySelector('[data-group="introduction"]');
+                        if (hardcodedCard && hardcodedCard.dataset.group === 'introduction') {
+                            hardcodedCard.dataset.group = group.id;
+                        }
+                    } else {
+                        renderGroup(group);
+                    }
                 }
             });
         }
@@ -562,9 +580,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const card = target.closest('.task-card');
                 if (card) {
                     activeGroupId = card.dataset.group;
+                    activeGroupId = card.dataset.group;
                     // Check if it's introduction group
-                    const isIntro = card.dataset.group === document.querySelector('[data-group="introduction"]')?.dataset.group;
-                    if (isIntro) {
+                    // Robust check: Check name in H3 or data-group match
+                    const groupTitle = card.querySelector('.card-header h3').innerText;
+
+                    if (groupTitle.includes('Introduction')) {
                         activeGroupIsIntro = true;
                     } else {
                         activeGroupIsIntro = false;
