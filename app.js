@@ -14,6 +14,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const tasksGrid = document.querySelector('.tasks-grid');
         const dynamicCardColors = ['purple', 'orange', 'cyan', 'pink'];
 
+        // --- Helper: Safe Date Parser ---
+        // Handles MySQL format "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DDTHH:MM:SS"
+        function safeDate(dateInput) {
+            if (!dateInput) return null;
+            if (dateInput instanceof Date) return dateInput;
+            // If string contains space and no T, replace space with T
+            if (typeof dateInput === 'string' && dateInput.includes(' ') && !dateInput.includes('T')) {
+                return new Date(dateInput.replace(' ', 'T'));
+            }
+            return new Date(dateInput);
+        }
+
         // --- Mobile Menu Logic ---
         const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
         const sidebar = document.querySelector('.sidebar');
@@ -418,8 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 1. Sort by scheduled_at ASC
             tasks.sort((a, b) => {
-                const dateA = new Date(a.scheduled_at || '9999-12-31');
-                const dateB = new Date(b.scheduled_at || '9999-12-31');
+                const dateA = safeDate(a.scheduled_at) || new Date('9999-12-31');
+                const dateB = safeDate(b.scheduled_at) || new Date('9999-12-31');
                 return dateA - dateB;
             });
 
@@ -434,7 +446,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const dateObj = new Date(task.scheduled_at);
+                const dateObj = safeDate(task.scheduled_at);
+                // Check if valid
+                if (isNaN(dateObj.getTime())) {
+                     // Fallback for truly invalid dates
+                    const taskEl = createTaskElement(task, true);
+                    container.appendChild(taskEl);
+                    return;
+                }
+
                 const dayStr = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
 
                 if (dayStr !== lastDateStr) {
@@ -556,7 +576,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Override for Introduction Mode
             if (isIntroduction) {
-                const timeStr = new Date(task.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                let timeStr = "--:--";
+                if (task.scheduled_at) {
+                    const dateObj = safeDate(task.scheduled_at);
+                     if (!isNaN(dateObj.getTime())) {
+                        timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                     }
+                }
+
                 li.innerHTML = `
                     <div style="display:flex; flex-direction:column; width:100%;">
                         <div style="display:flex; align-items:center; font-size:1.1em; margin-bottom:2px;">
@@ -820,9 +847,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentTaskData.scheduled_at) {
                     scheduleContainer.classList.remove('hidden');
                     // Format for input: YYYY-MM-DDTHH:MM
-                    const dt = new Date(currentTaskData.scheduled_at);
-                    dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); // Local time adjustment
-                    scheduleInput.value = dt.toISOString().slice(0, 16);
+                    const dt = safeDate(currentTaskData.scheduled_at);
+                    if (dt && !isNaN(dt.getTime())) {
+                        dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); // Local time adjustment
+                        scheduleInput.value = dt.toISOString().slice(0, 16);
+                    }
                     scheduleInput.readOnly = true; // Read only in view mode? Or allow edit? Let's allow edit if TODO.
 
                     if (currentTaskData.status === 'done') {
