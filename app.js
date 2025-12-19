@@ -894,20 +894,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 // -----------------------------------------
 
                 // --- Duplicate Check ---
-                const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
-                if (groupCard) {
-                    const existingLis = groupCard.querySelectorAll('li');
-                    let isDuplicate = false;
-                    existingLis.forEach(li => {
-                        const existingTitle = li.dataset.title || li.querySelector('span:last-child').innerText.split(' - ')[0].trim();
-                        if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
-                            isDuplicate = true;
-                        }
-                    });
+                // Skip duplicate check for Introduction group (schedule allows repeats)
+                if (!activeGroupIsIntro) {
+                    const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
+                    if (groupCard) {
+                        const existingLis = groupCard.querySelectorAll('li');
+                        let isDuplicate = false;
+                        existingLis.forEach(li => {
+                            const existingTitle = li.dataset.title || li.querySelector('span:last-child').innerText.split(' - ')[0].trim();
+                            if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
+                                isDuplicate = true;
+                            }
+                        });
 
-                    if (isDuplicate) {
-                        showNotification('Task with this name already exists in this group!', 'error');
-                        return; // Stop creation
+                        if (isDuplicate) {
+                            showNotification('Task with this name already exists in this group!', 'error');
+                            return; // Stop creation
+                        }
                     }
                 }
                 // -----------------------
