@@ -645,7 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Robust check: Check name in H3 or data-group match
                     const groupTitle = card.querySelector('.card-header h3').innerText;
 
-                    if (groupTitle.includes('Introduction')) {
+                    if (groupTitle.toLowerCase().includes('introduction')) {
                         activeGroupIsIntro = true;
                     } else {
                         activeGroupIsIntro = false;
@@ -786,6 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (activeGroupIsIntro) {
                     scheduleContainer.classList.remove('hidden');
                     scheduleInput.value = ''; // Reset
+                    scheduleInput.readOnly = false; // Ensure editable!
                     taskTitleInput.placeholder = "Client Name";
                     taskTextInput.placeholder = "Caregiver Name";
                 } else {
@@ -933,21 +934,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (newTask) {
-                    if (activeGroupIsIntro) {
-                        // For Introduction: Re-render WHOLE column to handle sorting & grouping
-                        const group = groups.find(g => g.id == activeGroupId);
-                        if (group) {
-                            group.tasks.push(newTask);
-                            renderIntroductionTasks(group);
-                        }
-                    } else {
-                        // For others: Just append to bottom
-                        const todoCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
-                        if (todoCard) {
-                            const ul = todoCard.querySelector('ul');
-                            ul.appendChild(createTaskElement(newTask, false));
-                        }
-                    }
+                    await loadGroups(); // Reload all groups to ensure correct sorting/grouping matches Server state
                     hideTaskModal();
                 }
             }
