@@ -164,125 +164,41 @@ async function runMigrations() {
             await pool.query("ALTER TABLE tasks ADD COLUMN created_by INT");
             console.log("Migration: 'created_by' column added.");
         }
+
+        // Check if 'scheduled_at' column exists (Introduction Feature)
+        const [columnsScheduled] = await pool.query("SHOW COLUMNS FROM tasks LIKE 'scheduled_at'");
+        if (columnsScheduled.length === 0) {
+            console.log("Migration: Adding 'scheduled_at' column to tasks table...");
+            await pool.query("ALTER TABLE tasks ADD COLUMN scheduled_at DATETIME NULL");
+            console.log("Migration: 'scheduled_at' column added.");
+        }
+
     } catch (err) {
         console.error("Migration warning:", err.message);
     }
 }
 runMigrations();
 
-// Debug: Check if variables are loaded (Don't log password!)
-console.log('--- DB CONNECTION DEBUG ---');
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_NAME:', process.env.DB_NAME);
-console.log('---------------------------');
+// --- Group Routes ---
 
-// Check DB Connection on Start
-pool.getConnection()
-    .then(connection => {
-        console.log('Successfully connected to the database.');
-
-        // Auto-Migration: Ensure status column exists
-        connection.query("ALTER TABLE users ADD COLUMN status VARCHAR(50) DEFAULT 'free'")
-            .then(() => console.log('Schema verification: status column ensured.'))
-            .catch(() => console.log('Schema verification: status column likely exists.'));
-
-        connection.release();
-    })
-    .catch(err => {
-        console.error('Error connecting to the database:', err);
-    });
-
-// --- Setup Route (Run once to create tables) ---
-app.get('/api/setup', async (req, res) => {
-    try {
-        const connection = await pool.getConnection();
-
-        // Users Table
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                email VARCHAR(255) NOT NULL UNIQUE,
-                password_hash VARCHAR(255) NOT NULL,
-                status VARCHAR(50) DEFAULT 'free',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Safe Schema Update for existing tables
-        try {
-            await connection.query("ALTER TABLE users ADD COLUMN status VARCHAR(50) DEFAULT 'free'");
-        } catch (e) {
-            // Ignore error if column exists
-        }
-
-        // Task Groups Table
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS task_groups (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                color VARCHAR(50),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Tasks Table
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS tasks (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                group_id INT,
-                title VARCHAR(255) NOT NULL,
-                description TEXT,
-                priority VARCHAR(50),
-                status VARCHAR(50) DEFAULT 'todo',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                completed_at TIMESTAMP NULL,
-                FOREIGN KEY (group_id) REFERENCES task_groups(id) ON DELETE CASCADE
-            )
-        `);
-
-        connection.release();
-        res.send('✅ Database setup completed! Tables created.');
-    } catch (error) {
-        console.error(error);
-
-        // Prepare Debug Info (HIDE PASSWORD)
-        const debugInfo = {
-            message: error.message,
-            code: error.code,
-            env: {
-                DB_HOST: process.env.DB_HOST || 'undefined',
-                MYSQLHOST: process.env.MYSQLHOST || 'undefined',
-                MYSQL_HOST: process.env.MYSQL_HOST || 'undefined',
-                DATABASE_URL_EXISTS: !!process.env.DATABASE_URL
-            }
-        };
-
-        res.status(500).json({ error: 'Setup failed', details: debugInfo });
-    }
-});
-
-// API Routes
-
-// GET /api/groups - Fetch all groups and their tasks
+// GET /api/groups - List all groups with their tasks
 app.get('/api/groups', async (req, res) => {
     try {
-        const [groups] = await pool.query('SELECT * FROM task_groups ORDER BY created_at');
-        const [tasks] = await pool.query('SELECT * FROM tasks ORDER BY created_at');
+        // Fetch groups
+        const [groups] = await pool.query('SELECT * FROM task_groups');
+        // Fetch tasks
+        const [tasks] = await pool.query('SELECT * FROM tasks');
 
-        // Organize tasks into their groups
-        const groupsWithTasks = groups.map(group => {
-            return {
-                ...group,
-                tasks: tasks.filter(task => task.group_id === group.id)
-            };
-        });
+        // Nest tasks under groups
+        const groupsWithTasks = groups.map(group => ({
+            ...group,
+            tasks: tasks.filter(task => task.group_id === group.id)
+        }));
 
         res.json(groupsWithTasks);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Failed to fetch data' });
+        res.status(500).json({ error: 'Failed to fetch groups' });
     }
 });
 
@@ -291,20 +207,20 @@ app.post('/api/groups', async (req, res) => {
     const { name, color } = req.body;
     try {
         const [result] = await pool.query('INSERT INTO task_groups (name, color) VALUES (?, ?)', [name, color]);
-        const newGroup = { id: result.insertId, name, color, tasks: [] };
-        res.status(201).json(newGroup);
+        res.status(201).json({ id: result.insertId, name, color, tasks: [] });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to create group' });
     }
 });
 
-// DELETE /api/groups/:id - Delete a group
+// DELETE /api/groups/:id - Delete a group and its tasks
 app.delete('/api/groups/:id', async (req, res) => {
     const { id } = req.params;
     try {
+        await pool.query('DELETE FROM tasks WHERE group_id = ?', [id]);
         await pool.query('DELETE FROM task_groups WHERE id = ?', [id]);
-        res.json({ message: 'Group deleted successfully' });
+        res.json({ message: 'Group deleted' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to delete group' });
@@ -317,28 +233,10 @@ app.patch('/api/groups/:id', async (req, res) => {
     const { name } = req.body;
     try {
         await pool.query('UPDATE task_groups SET name = ? WHERE id = ?', [name, id]);
-        res.json({ message: 'Group updated successfully' });
+        res.json({ message: 'Group updated' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to update group' });
-    }
-});
-
-// GET /api/tasks - Retrieve all tasks (optionally filtered by group)
-app.get('/api/tasks', async (req, res) => {
-    const { group_id } = req.query;
-    try {
-        let query = 'SELECT * FROM tasks';
-        const params = [];
-        if (group_id) {
-            query += ' WHERE group_id = ?';
-            params.push(group_id);
-        }
-        query += ' ORDER BY created_at DESC'; // Newest first
-        const [tasks] = await pool.query(query, params);
-        res.json(tasks);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 });
 
@@ -358,11 +256,14 @@ app.post('/api/tasks', async (req, res) => {
         }
     }
 
-    const { group_id, title, description, priority, status } = req.body;
+    const { group_id, title, description, priority, status, scheduled_at } = req.body;
     try {
+        // Handle scheduled_at being optional
+        const scheduledDate = scheduled_at ? scheduled_at : null;
+
         const [result] = await pool.query(
-            'INSERT INTO tasks (group_id, title, description, priority, status, created_by) VALUES (?, ?, ?, ?, ?, ?)',
-            [group_id, title, description, priority, status || 'todo', created_by]
+            'INSERT INTO tasks (group_id, title, description, priority, status, created_by, scheduled_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [group_id, title, description, priority, status || 'todo', created_by, scheduledDate]
         );
         const newTask = {
             id: result.insertId,
@@ -372,6 +273,7 @@ app.post('/api/tasks', async (req, res) => {
             priority,
             status: status || 'todo',
             created_by: created_by,
+            scheduled_at: scheduledDate,
             created_at: new Date()
         };
         res.status(201).json(newTask);
@@ -385,7 +287,7 @@ app.post('/api/tasks', async (req, res) => {
 // PATCH /api/tasks/:id - Update task (status, completion_at, etc.)
 app.patch('/api/tasks/:id', async (req, res) => {
     const { id } = req.params;
-    const { status, completed_at, title, description, priority, group_id } = req.body;
+    const { status, completed_at, title, description, priority, group_id, scheduled_at } = req.body;
 
     // Construct dynamic query
     let fields = [];
@@ -397,6 +299,7 @@ app.patch('/api/tasks/:id', async (req, res) => {
     if (description !== undefined) { fields.push('description = ?'); values.push(description); }
     if (priority !== undefined) { fields.push('priority = ?'); values.push(priority); }
     if (group_id !== undefined) { fields.push('group_id = ?'); values.push(group_id); }
+    if (scheduled_at !== undefined) { fields.push('scheduled_at = ?'); values.push(scheduled_at); }
     // Add solution support
     const { solution } = req.body;
     if (solution !== undefined) { fields.push('solution = ?'); values.push(solution); }
