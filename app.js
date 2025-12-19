@@ -933,10 +933,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (newTask) {
-                    const todoCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
-                    if (todoCard) {
-                        const ul = todoCard.querySelector('ul');
-                        ul.appendChild(createTaskElement(newTask, activeGroupIsIntro)); // Pass isIntroduction flag!
+                    if (activeGroupIsIntro) {
+                        // For Introduction: Re-render WHOLE column to handle sorting & grouping
+                        const group = groups.find(g => g.id == activeGroupId);
+                        if (group) {
+                            group.tasks.push(newTask);
+                            renderIntroductionTasks(group);
+                        }
+                    } else {
+                        // For others: Just append to bottom
+                        const todoCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
+                        if (todoCard) {
+                            const ul = todoCard.querySelector('ul');
+                            ul.appendChild(createTaskElement(newTask, false));
+                        }
                     }
                     hideTaskModal();
                 }
