@@ -135,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const filterInput = document.getElementById('filter-input');
 
         let activeGroupId = null;
+        let activeGroupIsIntro = false; // Flag to track if we are in intro mode
         let currentTaskData = null;
 
         // --- Initialization ---
@@ -171,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const groups = await fetchGroups();
 
             const fixedDefs = [
+                { name: 'Introduction', selector: '[data-group="introduction"]', color: 'cyan' },
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' }
             ];
@@ -349,7 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Identify Fixed Group IDs
             const coordGroup = groups.find(g => g.name === 'Coordinators');
             const superGroup = groups.find(g => g.name === 'Supervisors');
-            const fixedIds = [coordGroup?.id, superGroup?.id].filter(id => id);
+            const introGroup = groups.find(g => g.name === 'Introduction');
+            const fixedIds = [coordGroup?.id, superGroup?.id, introGroup?.id].filter(id => id);
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
@@ -362,11 +365,53 @@ document.addEventListener('DOMContentLoaded', () => {
             groups.forEach(group => {
                 if (fixedIds.includes(group.id)) {
                     // It's a fixed group, just render its tasks into existing DOM
-                    renderFixedGroupTasks(group);
+                    if (group.name === 'Introduction') {
+                        renderIntroductionTasks(group);
+                    } else {
+                        renderFixedGroupTasks(group);
+                    }
                 } else {
                     // It's a dynamic group, create full card
                     renderGroup(group);
                 }
+            });
+        }
+
+        function renderIntroductionTasks(group) {
+            const container = document.querySelector(`.task-card[data-group="${group.id}"] ul`);
+            if (!container) return;
+            container.innerHTML = '';
+
+            // 1. Sort by scheduled_at ASC
+            const tasks = group.tasks.sort((a, b) => {
+                const dateA = new Date(a.scheduled_at || '9999-12-31');
+                const dateB = new Date(b.scheduled_at || '9999-12-31');
+                return dateA - dateB;
+            });
+
+            // 2. Group by Day
+            let lastDateStr = null;
+
+            tasks.forEach(task => {
+                if (!task.scheduled_at) return; // Skip if no date (shouldn't happen in this view ideally)
+
+                const dateObj = new Date(task.scheduled_at);
+                const dayStr = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+
+                if (dayStr !== lastDateStr) {
+                    const header = document.createElement('li');
+                    header.style.backgroundColor = '#e0f7fa';
+                    header.style.fontWeight = 'bold';
+                    header.style.padding = '5px 10px';
+                    header.style.marginTop = '10px';
+                    header.style.borderRadius = '4px';
+                    header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
+                    container.appendChild(header);
+                    lastDateStr = dayStr;
+                }
+
+                const taskEl = createTaskElement(task, true); // True for 'isIntroduction' mode
+                container.appendChild(taskEl);
             });
         }
 
@@ -443,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return div;
         }
 
-        function createTaskElement(task) {
+        function createTaskElement(task, isIntroduction = false) {
             const li = document.createElement('li');
             li.dataset.id = task.id;
             li.dataset.text = task.description || '';
@@ -452,7 +497,9 @@ document.addEventListener('DOMContentLoaded', () => {
             li.dataset.priority = task.priority;
             li.dataset.title = task.title;
             li.dataset.solution = task.solution || '';
+            li.dataset.solution = task.solution || '';
             li.dataset.created_by = task.created_by || ''; // Store ownership info
+            li.dataset.scheduled_at = task.scheduled_at || ''; // Store schedule info
 
             const creationDate = new Date(task.created_at).toLocaleDateString('pt-BR');
             const completionInfo = task.completed_at
@@ -460,6 +507,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 : ` - <span style="font-size: 0.8em; color: #666; font-style: italic;">added on ${creationDate}</span>`;
 
             li.innerHTML = `<span class="task-item-priority-dot ${task.priority}"></span><span><strong>${task.title}</strong>${completionInfo}</span>`;
+
+            // Override for Introduction Mode
+            if (isIntroduction) {
+                const timeStr = new Date(task.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                li.innerHTML = `
+                    <div style="display:flex; flex-direction:column; width:100%;">
+                        <div style="display:flex; align-items:center; font-size:1.1em; margin-bottom:2px;">
+                            <span class="task-item-priority-dot ${task.priority}"></span>
+                            <strong>${timeStr} - ${task.title}</strong>
+                        </div>
+                        <span style="font-size:0.9em; color:#555; margin-left:22px;">Caregiver: ${task.description}</span>
+                    </div>
+                `;
+            } else {
+                li.innerHTML = `<span class="task-item-priority-dot ${task.priority}"></span><span><strong>${task.title}</strong>${completionInfo}</span>`;
+            }
+
             return li;
         }
 
@@ -498,6 +562,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const card = target.closest('.task-card');
                 if (card) {
                     activeGroupId = card.dataset.group;
+                    // Check if it's introduction group
+                    const isIntro = card.dataset.group === document.querySelector('[data-group="introduction"]')?.dataset.group;
+                    if (isIntro) {
+                        activeGroupIsIntro = true;
+                    } else {
+                        activeGroupIsIntro = false;
+                    }
                     showTaskModal('create');
                 }
             }
@@ -514,8 +585,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     priority: li.dataset.priority,
                     status: card.dataset.type === 'done' ? 'done' : 'todo',
                     solution: li.dataset.solution,
-                    created_by: li.dataset.created_by // Retrieve ownership info
+                    created_by: li.dataset.created_by, // Retrieve ownership info
+                    scheduled_at: li.dataset.scheduled_at || null // NEW
                 };
+
+                // Determine if this task belongs to Introduction group
+                const groupName = card.querySelector('h3').textContent;
+                activeGroupIsIntro = groupName.includes('Introduction');
 
                 showTaskModal('view');
             }
@@ -619,7 +695,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('solution-label').classList.add('hidden');
                 document.getElementById('task-solution-input').classList.add('hidden');
                 document.getElementById('task-solution-input').value = '';
+                document.getElementById('task-solution-input').value = '';
                 document.getElementById('delete-task-btn').classList.add('hidden'); // Fix: Ensure delete button is hidden
+
+                // Handle Schedule Input
+                const scheduleContainer = document.getElementById('schedule-container');
+                const scheduleInput = document.getElementById('task-schedule-input');
+
+                if (activeGroupIsIntro) {
+                    scheduleContainer.classList.remove('hidden');
+                    scheduleInput.value = ''; // Reset
+                    taskTitleInput.placeholder = "Client Name";
+                    taskTextInput.placeholder = "Caregiver Name";
+                } else {
+                    scheduleContainer.classList.add('hidden');
+                    taskTitleInput.placeholder = "Task Title";
+                    taskTextInput.placeholder = "Task description...";
+                }
             } else if (mode === 'view') {
                 taskModalTitle.textContent = 'Task Details';
                 taskTitleInput.value = currentTaskData.title;
@@ -667,8 +759,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 // --- DELETE BUTTON LOGIC ---
                 // Show for ALL existing tasks (ToDo or Done)
                 // Hide only for new tasks (managed by 'create' mode block)
+                // --- DELETE BUTTON LOGIC ---
+                // Show for ALL existing tasks (ToDo or Done)
+                // Hide only for new tasks (managed by 'create' mode block)
                 const deleteBtn = document.getElementById('delete-task-btn');
                 deleteBtn.classList.remove('hidden');
+
+                // Handle Schedule Input View
+                const scheduleContainer = document.getElementById('schedule-container');
+                const scheduleInput = document.getElementById('task-schedule-input');
+                if (currentTaskData.scheduled_at) {
+                    scheduleContainer.classList.remove('hidden');
+                    // Format for input: YYYY-MM-DDTHH:MM
+                    const dt = new Date(currentTaskData.scheduled_at);
+                    dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); // Local time adjustment
+                    scheduleInput.value = dt.toISOString().slice(0, 16);
+                    scheduleInput.readOnly = true; // Read only in view mode? Or allow edit? Let's allow edit if TODO.
+
+                    if (currentTaskData.status === 'done') {
+                        scheduleInput.readOnly = true;
+                    } else {
+                        scheduleInput.readOnly = false; // Allow rescheduling if needed
+                    }
+                } else {
+                    scheduleContainer.classList.add('hidden');
+                }
             }
         }
 
@@ -687,6 +802,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const priority = document.querySelector('input[name="priority"]:checked').value;
 
             if (title && activeGroupId) {
+                // --- Validation for Introduction Group ---
+                const scheduleInput = document.getElementById('task-schedule-input');
+                if (activeGroupIsIntro && !scheduleInput.value) {
+                    showNotification('Please select a Date & Time for the Introduction.', 'error');
+                    return;
+                }
+                // -----------------------------------------
+
                 // --- Duplicate Check ---
                 const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
                 if (groupCard) {
@@ -711,7 +834,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: title,
                     description: text,
                     priority: priority,
-                    status: 'todo'
+                    status: 'todo',
+                    scheduled_at: document.getElementById('task-schedule-input').value || null
                 });
 
                 if (newTask) {
