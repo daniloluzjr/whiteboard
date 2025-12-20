@@ -235,9 +235,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function createGroupAPI(name, color) {
             try {
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
                 const response = await fetch(`${API_URL}/groups`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ name, color })
                 });
                 if (!response.ok) throw new Error('Failed to create group');
@@ -250,7 +254,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function deleteGroupAPI(id) {
             try {
-                await fetch(`${API_URL}/groups/${id}`, { method: 'DELETE' });
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/groups/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!response.ok) throw new Error('Failed to delete group');
                 return true;
             } catch (error) {
                 console.error(error);
@@ -260,11 +271,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function renameGroupAPI(id, newName) {
             try {
-                await fetch(`${API_URL}/groups/${id}`, {
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/groups/${id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ name: newName })
                 });
+                if (!response.ok) throw new Error('Failed to rename group');
             } catch (error) {
                 console.error(error);
             }
@@ -291,11 +307,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function updateTaskAPI(id, updates) {
             try {
-                await fetch(`${API_URL}/tasks/${id}`, {
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/tasks/${id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify(updates)
                 });
+                if (!response.ok) throw new Error('Failed to update task');
                 return true;
             } catch (error) {
                 console.error(error);
@@ -305,7 +326,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function deleteTaskAPI(taskId) {
             try {
-                await fetch(`${API_URL}/tasks/${taskId}`, { method: 'DELETE' });
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to delete task: ${response.status}`);
+                }
+
                 return true;
             } catch (error) {
                 console.error(error);
@@ -318,11 +350,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (solution !== null) body.solution = solution;
 
             try {
-                await fetch(`${API_URL}/tasks/${taskId}`, {
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/tasks/${taskId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify(body)
                 });
+                if (!response.ok) throw new Error('Failed to update task status');
                 return true;
             } catch (error) {
                 console.error(error);
