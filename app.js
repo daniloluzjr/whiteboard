@@ -915,7 +915,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 taskDates.classList.remove('hidden');
                 if (currentTaskData.created_at) {
-                    creationDateSpan.textContent = new Date(currentTaskData.created_at).toLocaleString('pt-BR');
+                    const createdDateStr = new Date(currentTaskData.created_at).toLocaleString('pt-BR');
+                    let createdByStr = '';
+
+                    if (currentTaskData.created_by && allUsersCache[currentTaskData.created_by]) {
+                        createdByStr = ` by ${allUsersCache[currentTaskData.created_by]}`;
+                    }
+
+                    creationDateSpan.textContent = createdDateStr + createdByStr;
                 }
                 if (currentTaskData.completed_at) {
                     const completedDateStr = new Date(currentTaskData.completed_at).toLocaleString('pt-BR');
