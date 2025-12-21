@@ -51,6 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentDot = null;
         const userStatusList = document.getElementById('user-status-list');
 
+        // NEW: Cache for user data (ID -> Name mapping)
+        let allUsersCache = {};
+
+
         const statusIcons = {
             'free': '⚡',
             'busy': '⛔',
@@ -69,6 +73,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentUser = JSON.parse(localStorage.getItem('user'));
 
             users.forEach(user => {
+                // Populate cache
+                allUsersCache[user.id] = user.name || user.email.split('@')[0];
+                // Ensure capitalization for the fallback
+                if (!allUsersCache[user.id]) {
+                    allUsersCache[user.id] = "Unknown User";
+                } else if (!user.name) {
+                    allUsersCache[user.id] = allUsersCache[user.id].charAt(0).toUpperCase() + allUsersCache[user.id].slice(1);
+                }
+
                 const li = document.createElement('li');
                 // Use the registered name, or fallback to email prefix if missing
                 let displayName = user.name || user.email.split('@')[0];
@@ -606,6 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
             li.dataset.title = task.title;
             li.dataset.solution = task.solution || '';
             li.dataset.created_by = task.created_by || '';
+            li.dataset.completed_by = task.completed_by || ''; // NEW: Tracking completion user
             li.dataset.scheduled_at = task.scheduled_at || '';
 
             const creationDate = new Date(task.created_at).toLocaleDateString('en-GB');
@@ -740,7 +754,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     priority: li.dataset.priority,
                     status: card.dataset.type === 'done' ? 'done' : 'todo',
                     solution: li.dataset.solution,
+                    status: card.dataset.type === 'done' ? 'done' : 'todo',
+                    solution: li.dataset.solution,
                     created_by: li.dataset.created_by, // Retrieve ownership info
+                    completed_by: li.dataset.completed_by || null, // NEW
                     scheduled_at: li.dataset.scheduled_at || null // NEW
                 };
 
@@ -901,7 +918,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     creationDateSpan.textContent = new Date(currentTaskData.created_at).toLocaleString('pt-BR');
                 }
                 if (currentTaskData.completed_at) {
-                    completionDateSpan.textContent = new Date(currentTaskData.completed_at).toLocaleString('pt-BR');
+                    const completedDateStr = new Date(currentTaskData.completed_at).toLocaleString('pt-BR');
+                    let completedByStr = '';
+
+                    if (currentTaskData.completed_by && allUsersCache[currentTaskData.completed_by]) {
+                        completedByStr = ` by ${allUsersCache[currentTaskData.completed_by]}`;
+                    }
+
+                    completionDateSpan.textContent = completedDateStr + completedByStr;
                 } else {
                     completionDateSpan.textContent = 'Pending...';
                 }

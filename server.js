@@ -184,6 +184,15 @@ async function runMigrations() {
             console.log("Migration: 'scheduled_at' column added.");
         }
 
+        // Check if 'completed_by' column exists (Task Completion User)
+        // Note: created_by already exists and was added earlier, but let's ensure completed_by is there too if distinct
+        const [columnsCompletedBy] = await pool.query("SHOW COLUMNS FROM tasks LIKE 'completed_by'");
+        if (columnsCompletedBy.length === 0) {
+            console.log("Migration: Adding 'completed_by' column to tasks table...");
+            await pool.query("ALTER TABLE tasks ADD COLUMN completed_by INT");
+            console.log("Migration: 'completed_by' column added.");
+        }
+
     } catch (err) {
         console.error("Migration warning:", err.message);
     }
@@ -293,7 +302,19 @@ app.patch('/api/tasks/:id', authenticateToken, async (req, res) => {
     let fields = [];
     let values = [];
 
-    if (status !== undefined) { fields.push('status = ?'); values.push(status); }
+    if (status !== undefined) {
+        fields.push('status = ?');
+        values.push(status);
+
+        // Logic for completed_by
+        if (status === 'done') {
+            fields.push('completed_by = ?');
+            values.push(req.user.id);
+        } else if (status === 'todo') {
+            // Reset if moving back to todo
+            fields.push('completed_by = NULL');
+        }
+    }
     if (completed_at !== undefined) { fields.push('completed_at = ?'); values.push(completed_at); }
     if (title !== undefined) { fields.push('title = ?'); values.push(title); }
     if (description !== undefined) { fields.push('description = ?'); values.push(description); }
