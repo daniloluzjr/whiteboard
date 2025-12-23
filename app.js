@@ -883,7 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     taskTextInput.placeholder = "Carer Name";
                 } else {
                     scheduleContainer.classList.add('hidden');
-                    taskTextInput.classList.add('hidden');
+                    taskTextInput.classList.remove('hidden'); // Fix: Show for everyone
                     taskTitleInput.placeholder = "Task Title";
                     taskTextInput.placeholder = "Task description...";
                 }
@@ -898,7 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (activeGroupIsIntro) {
                     taskTextInput.classList.remove('hidden');
                 } else {
-                    taskTextInput.classList.add('hidden');
+                    taskTextInput.classList.remove('hidden'); // Fix: Show for everyone
                 }
 
                 // Solution Field Logic
