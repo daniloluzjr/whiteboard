@@ -1035,7 +1035,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const existingLis = groupCard.querySelectorAll('li');
                         let isDuplicate = false;
                         existingLis.forEach(li => {
-                            const existingTitle = li.dataset.title || li.querySelector('span:last-child').innerText.split(' - ')[0].trim();
+                            // Skip Header LIs (they don't have dataset.id)
+                            if (!li.dataset.id) return;
+
+                            const existingTitle = li.dataset.title || (li.querySelector('span:last-child') ? li.querySelector('span:last-child').innerText.split(' - ')[0].trim() : '');
                             if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
                                 isDuplicate = true;
                             }
