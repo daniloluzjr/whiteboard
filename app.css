@@ -23,7 +23,8 @@ body {
 
 .sidebar {
   width: 280px;
-  background-color: rgba(255, 255, 255, 0.65); /* Glass */
+  background-color: rgba(235, 237, 240, 0.85);
+  /* Greyer Glass */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 24px;
@@ -162,7 +163,8 @@ body {
 /* Status Pop-up */
 .status-popup {
   position: absolute;
-  background-color: rgba(255, 255, 255, 0.9); /* Glass-like */
+  background-color: rgba(255, 255, 255, 0.9);
+  /* Glass-like */
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 8px;
@@ -209,13 +211,15 @@ body {
 }
 
 .task-card {
-  background-color: rgba(255, 255, 255, 0.65); /* BASE GLASS EFFECT */
+  background-color: rgba(255, 255, 255, 0.65);
+  /* BASE GLASS EFFECT */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 16px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05); /* Soft shadow */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  /* Reduced shadow */
   position: relative;
   transition: transform 0.2s, box-shadow 0.2s;
   /* Needed for positioning the delete button */
@@ -270,7 +274,8 @@ body {
 }
 
 .modal-content {
-  background-color: rgba(255, 255, 255, 0.85); /* Glass Modal */
+  background-color: rgba(255, 255, 255, 0.85);
+  /* Glass Modal */
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   padding: 30px;
@@ -562,43 +567,45 @@ body {
 /* Visual Grouping Styles - Tinted Glass */
 .task-card[data-group="coordinators"] {
   border-top: 5px solid #007bff;
-  background-color: rgba(0, 123, 255, 0.05); /* Blue Tint */
+  background-color: rgba(0, 123, 255, 0.15);
+  /* More visible Blue Tint */
 }
 
 .task-card[data-group="supervisors"] {
   border-top: 5px solid #28a745;
-  background-color: rgba(40, 167, 69, 0.05); /* Green Tint */
+  background-color: rgba(40, 167, 69, 0.15);
+  /* More visible Green Tint */
 }
 
 /* Dynamic Group Colors - Tinted Glass */
 .task-card[data-color="purple"] {
   border-top: 5px solid #6f42c1;
-  background-color: rgba(111, 66, 193, 0.05);
+  background-color: rgba(111, 66, 193, 0.15);
 }
 
 .task-card[data-color="orange"] {
   border-top: 5px solid #fd7e14;
-  background-color: rgba(253, 126, 20, 0.05);
+  background-color: rgba(253, 126, 20, 0.15);
 }
 
 .task-card[data-color="cyan"] {
   border-top: 5px solid #17a2b8;
-  background-color: rgba(23, 162, 184, 0.05);
+  background-color: rgba(23, 162, 184, 0.15);
 }
 
 .task-card[data-color="pink"] {
   border-top: 5px solid #e83e8c;
-  background-color: rgba(232, 62, 140, 0.05);
+  background-color: rgba(232, 62, 140, 0.15);
 }
 
 .task-card[data-color="yellow"] {
   border-top: 5px solid #ffc107;
-  background-color: rgba(255, 193, 7, 0.05);
+  background-color: rgba(255, 193, 7, 0.15);
 }
 
 .task-card[data-color="green"] {
   border-top: 5px solid #28a745;
-  background-color: rgba(40, 167, 69, 0.05);
+  background-color: rgba(40, 167, 69, 0.15);
 }
 
 /* --- Premium Notifications --- */
@@ -860,27 +867,28 @@ body {
     white-space: nowrap;
   }
 }
+
 /* --- Delicate Scrollbar --- */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #d6d6d6;
-    border-radius: 10px;
+  background: #d6d6d6;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #adb5bd;
+  background: #adb5bd;
 }
 
 /* Firefox */
 * {
-    scrollbar-width: thin;
-    scrollbar-color: #d6d6d6 transparent;
+  scrollbar-width: thin;
+  scrollbar-color: #d6d6d6 transparent;
 }
