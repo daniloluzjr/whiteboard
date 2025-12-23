@@ -540,8 +540,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const doneList = doneCard.querySelector('ul');
 
                 // Sort tasks: Done by completion date (desc), ToDo by creation date (asc)
-                const todoTasks = group.tasks.filter(t => t.status !== 'done').sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-                const doneTasks = group.tasks.filter(t => t.status === 'done').sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
+                const todoTasks = group.tasks.filter(t => t.status !== 'done').sort((a, b) => (safeDate(a.created_at) || 0) - (safeDate(b.created_at) || 0));
+                const doneTasks = group.tasks.filter(t => t.status === 'done').sort((a, b) => (safeDate(b.completed_at) || 0) - (safeDate(a.completed_at) || 0));
 
                 todoTasks.forEach(task => {
                     const taskEl = createTaskElement(task);
@@ -577,8 +577,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const doneList = doneCard.querySelector('ul');
 
             // Sort tasks: Done by completion date (desc), ToDo by creation date (asc)
-            const todoTasks = group.tasks.filter(t => t.status !== 'done').sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-            const doneTasks = group.tasks.filter(t => t.status === 'done').sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
+            const todoTasks = group.tasks.filter(t => t.status !== 'done').sort((a, b) => (safeDate(a.created_at) || 0) - (safeDate(b.created_at) || 0));
+            const doneTasks = group.tasks.filter(t => t.status === 'done').sort((a, b) => (safeDate(b.completed_at) || 0) - (safeDate(a.completed_at) || 0));
 
             todoTasks.forEach(task => {
                 const taskEl = createTaskElement(task);
@@ -632,7 +632,8 @@ document.addEventListener('DOMContentLoaded', () => {
             li.dataset.completed_by = task.completed_by || ''; // NEW: Tracking completion user
             li.dataset.scheduled_at = task.scheduled_at || '';
 
-            const creationDate = new Date(task.created_at).toLocaleDateString('en-GB');
+            const creationDateObj = safeDate(task.created_at);
+            const creationDate = (creationDateObj && !isNaN(creationDateObj)) ? creationDateObj.toLocaleDateString('en-GB') : '';
 
             // --- Safe Element Creation (Anti-XSS) ---
 
@@ -691,7 +692,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dateText = document.createElement('span');
                 dateText.style.cssText = "font-size: 0.8em; color: #666; font-style: italic;";
                 if (task.completed_at) {
-                    dateText.textContent = ` - completed on ${new Date(task.completed_at).toLocaleDateString('en-GB')}`;
+                    const compDateObj = safeDate(task.completed_at);
+                    if (compDateObj && !isNaN(compDateObj)) {
+                        dateText.textContent = ` - completed on ${compDateObj.toLocaleDateString('en-GB')}`;
+                    } else {
+                        dateText.textContent = ` - completed`;
+                    }
                 } else {
                     dateText.textContent = ` - added on ${creationDate}`;
                 }
