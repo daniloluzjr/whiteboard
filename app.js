@@ -658,7 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Bottom Row (Caregiver)
                 const bottomRow = document.createElement('span');
                 bottomRow.style.cssText = "font-size:0.9em; color:#555; margin-left:22px;";
-                bottomRow.textContent = `Caregiver: ${task.description}`; // Safe text assignment
+                bottomRow.textContent = `Carer Name: ${task.description}`; // Safe text assignment
 
                 titleContainer.appendChild(topRow);
                 titleContainer.appendChild(bottomRow);
@@ -876,12 +876,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (activeGroupIsIntro) {
                     scheduleContainer.classList.remove('hidden');
+                    taskTextInput.classList.remove('hidden');
                     scheduleInput.value = ''; // Reset
                     scheduleInput.readOnly = false; // Ensure editable!
                     taskTitleInput.placeholder = "Client Name";
-                    taskTextInput.placeholder = "Caregiver Name";
+                    taskTextInput.placeholder = "Carer Name";
                 } else {
                     scheduleContainer.classList.add('hidden');
+                    taskTextInput.classList.add('hidden');
                     taskTitleInput.placeholder = "Task Title";
                     taskTextInput.placeholder = "Task description...";
                 }
@@ -891,6 +893,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 taskTextInput.value = currentTaskData.description || '';
                 taskTitleInput.readOnly = true;
                 taskTextInput.readOnly = true;
+
+                // Toggle visibility based on group type
+                if (activeGroupIsIntro) {
+                    taskTextInput.classList.remove('hidden');
+                } else {
+                    taskTextInput.classList.add('hidden');
+                }
 
                 // Solution Field Logic
                 const solutionInput = document.getElementById('task-solution-input');
