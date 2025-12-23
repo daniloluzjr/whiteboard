@@ -481,51 +481,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function renderIntroList(container, tasks, groupId) {
+            // Re-use generic with specific settings for Intro (Schedule ASC, Vertical Layout)
+            renderGroupedList(container, tasks, 'scheduled_at', 'asc', true);
+        }
+
+        // Generic Renderer with Date Headers
+        function renderGroupedList(container, tasks, dateField, sortOrder = 'desc', isIntroduction = false) {
             container.innerHTML = '';
 
-            // 1. Sort by scheduled_at ASC
             tasks.sort((a, b) => {
-                const dateA = safeDate(a.scheduled_at) || new Date('9999-12-31');
-                const dateB = safeDate(b.scheduled_at) || new Date('9999-12-31');
-                return dateA - dateB;
+                const dateA = safeDate(a[dateField]) || (sortOrder === 'asc' ? new Date('9999-12-31') : new Date('0000-01-01'));
+                const dateB = safeDate(b[dateField]) || (sortOrder === 'asc' ? new Date('9999-12-31') : new Date('0000-01-01')); // Handle nulls
+
+                // Safe parsing for subtraction
+                const valA = dateA instanceof Date ? dateA.getTime() : 0;
+                const valB = dateB instanceof Date ? dateB.getTime() : 0;
+
+                return sortOrder === 'asc' ? valA - valB : valB - valA;
             });
 
-            // 2. Group by Day
             let lastDateStr = null;
 
             tasks.forEach(task => {
-                if (!task.scheduled_at) {
-                    // Fallback for tasks without date (should be rare in intro)
-                    const taskEl = createTaskElement(task, true);
-                    container.appendChild(taskEl);
-                    return;
+                const dateObj = safeDate(task[dateField]);
+                let isValidDate = dateObj && !isNaN(dateObj.getTime());
+
+                // For schedule, required. For others, optional but if missing, put in "No Date" bucket or just render?
+                // If invalid date in 'created_at' (shouldn't happen), treat as no header?
+
+                if (isValidDate) {
+                    const dayStr = dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit' });
+
+                    if (dayStr !== lastDateStr) {
+                        const header = document.createElement('li');
+                        header.style.backgroundColor = 'rgba(23, 162, 184, 0.1)';
+                        header.style.fontWeight = 'bold';
+                        header.style.padding = '5px 10px';
+                        header.style.marginTop = '10px';
+                        header.style.borderRadius = '4px';
+                        header.style.color = '#117a8b';
+                        header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
+                        container.appendChild(header);
+                        lastDateStr = dayStr;
+                    }
                 }
 
-                const dateObj = safeDate(task.scheduled_at);
-                // Check if valid
-                if (isNaN(dateObj.getTime())) {
-                    // Fallback for truly invalid dates
-                    const taskEl = createTaskElement(task, true);
-                    container.appendChild(taskEl);
-                    return;
-                }
-
-                const dayStr = dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit' });
-
-                if (dayStr !== lastDateStr) {
-                    const header = document.createElement('li');
-                    header.style.backgroundColor = 'rgba(23, 162, 184, 0.1)'; // Light cyan match
-                    header.style.fontWeight = 'bold';
-                    header.style.padding = '5px 10px';
-                    header.style.marginTop = '10px';
-                    header.style.borderRadius = '4px';
-                    header.style.color = '#117a8b';
-                    header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
-                    container.appendChild(header);
-                    lastDateStr = dayStr;
-                }
-
-                const taskEl = createTaskElement(task, true); // True for 'isIntroduction' mode
+                const taskEl = createTaskElement(task, isIntroduction);
                 container.appendChild(taskEl);
             });
         }
@@ -536,22 +537,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const doneCard = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"]`);
 
             if (todoCard && doneCard) {
-                const todoList = todoCard.querySelector('ul');
-                const doneList = doneCard.querySelector('ul');
+                const todoContainer = todoCard.querySelector('ul');
+                const doneContainer = doneCard.querySelector('ul');
 
-                // Sort tasks: Done by completion date (desc), ToDo by creation date (asc)
-                const todoTasks = group.tasks.filter(t => t.status !== 'done').sort((a, b) => (safeDate(a.created_at) || 0) - (safeDate(b.created_at) || 0));
-                const doneTasks = group.tasks.filter(t => t.status === 'done').sort((a, b) => (safeDate(b.completed_at) || 0) - (safeDate(a.completed_at) || 0));
+                // ToDo: Group by Created At (Newest First)
+                const todoTasks = group.tasks.filter(t => t.status !== 'done');
+                renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false);
 
-                todoTasks.forEach(task => {
-                    const taskEl = createTaskElement(task);
-                    todoList.appendChild(taskEl);
-                });
-
-                doneTasks.forEach(task => {
-                    const taskEl = createTaskElement(task);
-                    doneList.appendChild(taskEl);
-                });
+                // Done: Group by Completed At (Newest First)
+                const doneTasks = group.tasks.filter(t => t.status === 'done');
+                renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false);
             }
         }
 
@@ -576,19 +571,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const todoList = todoCard.querySelector('ul');
             const doneList = doneCard.querySelector('ul');
 
-            // Sort tasks: Done by completion date (desc), ToDo by creation date (asc)
-            const todoTasks = group.tasks.filter(t => t.status !== 'done').sort((a, b) => (safeDate(a.created_at) || 0) - (safeDate(b.created_at) || 0));
-            const doneTasks = group.tasks.filter(t => t.status === 'done').sort((a, b) => (safeDate(b.completed_at) || 0) - (safeDate(a.completed_at) || 0));
+            // ToDo: Group by Created At (Newest First)
+            const todoTasks = group.tasks.filter(t => t.status !== 'done');
+            renderGroupedList(todoList, todoTasks, 'created_at', 'desc', false);
 
-            todoTasks.forEach(task => {
-                const taskEl = createTaskElement(task);
-                todoList.appendChild(taskEl);
-            });
-
-            doneTasks.forEach(task => {
-                const taskEl = createTaskElement(task);
-                doneList.appendChild(taskEl);
-            });
+            // Done: Group by Completed At (Newest First)
+            const doneTasks = group.tasks.filter(t => t.status === 'done');
+            renderGroupedList(doneList, doneTasks, 'completed_at', 'desc', false);
         }
 
         function createCardElement(group, type) {
