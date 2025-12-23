@@ -14,6 +14,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const tasksGrid = document.querySelector('.tasks-grid');
         const dynamicCardColors = ['purple', 'orange', 'cyan', 'pink'];
 
+        // --- Color Themes for Date Headers (Tone-on-Tone) ---
+        const colorThemeMap = {
+            'cyan': { text: '#117a8b', bg: 'rgba(23, 162, 184, 0.1)' },
+            'green': { text: '#155724', bg: 'rgba(40, 167, 69, 0.1)' },
+            'yellow': { text: '#856404', bg: 'rgba(255, 193, 7, 0.1)' },
+            'purple': { text: '#3c1e70', bg: 'rgba(111, 66, 193, 0.1)' },
+            'orange': { text: '#9e3f1b', bg: 'rgba(253, 126, 20, 0.1)' },
+            'pink': { text: '#901842', bg: 'rgba(232, 62, 140, 0.1)' }
+        };
+
         // --- Helper: Safe Date Parser ---
         // Handles MySQL format "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DDTHH:MM:SS"
         function safeDate(dateInput) {
@@ -482,12 +492,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function renderIntroList(container, tasks, groupId) {
             // Re-use generic with specific settings for Intro (Schedule ASC, Vertical Layout)
-            renderGroupedList(container, tasks, 'scheduled_at', 'asc', true);
+            // Use 'cyan' as default for Intro if color isn't explicitly passed (or look it up)
+            // Ideally we should pass group color, but Intro is always cyan/blue-ish.
+            renderGroupedList(container, tasks, 'scheduled_at', 'asc', true, 'cyan');
         }
 
         // Generic Renderer with Date Headers
-        function renderGroupedList(container, tasks, dateField, sortOrder = 'desc', isIntroduction = false) {
+        function renderGroupedList(container, tasks, dateField, sortOrder = 'desc', isIntroduction = false, groupColor = 'cyan') {
             container.innerHTML = '';
+
+            const theme = colorThemeMap[groupColor] || colorThemeMap['cyan'];
 
             tasks.sort((a, b) => {
                 const dateA = safeDate(a[dateField]) || (sortOrder === 'asc' ? new Date('9999-12-31') : new Date('0000-01-01'));
@@ -514,12 +528,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (dayStr !== lastDateStr) {
                         const header = document.createElement('li');
-                        header.style.backgroundColor = 'rgba(23, 162, 184, 0.1)';
+                        header.style.backgroundColor = theme.bg;
                         header.style.fontWeight = 'bold';
                         header.style.padding = '5px 10px';
                         header.style.marginTop = '10px';
                         header.style.borderRadius = '4px';
-                        header.style.color = '#117a8b';
+                        header.style.color = theme.text;
                         header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
                         container.appendChild(header);
                         lastDateStr = dayStr;
@@ -542,11 +556,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // ToDo: Group by Created At (Newest First)
                 const todoTasks = group.tasks.filter(t => t.status !== 'done');
-                renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false);
+                renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false, group.color);
 
                 // Done: Group by Completed At (Newest First)
                 const doneTasks = group.tasks.filter(t => t.status === 'done');
-                renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false);
+                renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false, group.color);
             }
         }
 
@@ -573,11 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // ToDo: Group by Created At (Newest First)
             const todoTasks = group.tasks.filter(t => t.status !== 'done');
-            renderGroupedList(todoList, todoTasks, 'created_at', 'desc', false);
+            renderGroupedList(todoList, todoTasks, 'created_at', 'desc', false, group.color);
 
             // Done: Group by Completed At (Newest First)
             const doneTasks = group.tasks.filter(t => t.status === 'done');
-            renderGroupedList(doneList, doneTasks, 'completed_at', 'desc', false);
+            renderGroupedList(doneList, doneTasks, 'completed_at', 'desc', false, group.color);
         }
 
         function createCardElement(group, type) {
