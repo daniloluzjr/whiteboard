@@ -536,21 +536,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     const dayStr = dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit' });
 
                     if (dayStr !== lastDateStr) {
-                        if (dayStr !== lastDateStr) {
-                            const header = document.createElement('li');
-                            // Glassmorphism styling as requested
-                            header.style.backgroundColor = 'rgba(255, 255, 255, 0.4)'; // Transparent white (Glass)
-                            header.style.border = '1px solid rgba(255, 255, 255, 0.6)'; // Subtle border
-                            header.style.backdropFilter = 'blur(4px)'; // Blur effect (Glass)
-                            header.style.fontWeight = 'bold';
-                            header.style.padding = '5px 10px';
-                            header.style.marginTop = '10px';
-                            header.style.borderRadius = '8px'; // Slightly more rounded
-                            header.style.color = '#777777'; // Lighter grey text
-                            header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
-                            container.appendChild(header);
-                            lastDateStr = dayStr;
-                        }
+                        const header = document.createElement('li');
+                        // Glassmorphism styling as requested - Whiter
+                        header.style.backgroundColor = 'rgba(255, 255, 255, 0.75)'; // Whiter glass
+                        header.style.border = '1px solid rgba(255, 255, 255, 0.8)'; // More crisp border
+                        header.style.backdropFilter = 'blur(4px)';
+                        header.style.fontWeight = 'bold';
+                        header.style.padding = '5px 10px';
+                        header.style.marginTop = '10px';
+                        header.style.borderRadius = '8px';
+                        header.style.color = '#555555'; // Darker grey for better contrast on white
+                        header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
+                        container.appendChild(header);
+                        lastDateStr = dayStr;
                     }
                 }
 
