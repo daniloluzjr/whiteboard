@@ -536,12 +536,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (dayStr !== lastDateStr) {
                         const header = document.createElement('li');
-                        header.style.backgroundColor = theme.bg;
+                        // Neutral Grey styling as requested
+                        header.style.backgroundColor = '#f0f0f0'; // Light grey
                         header.style.fontWeight = 'bold';
                         header.style.padding = '5px 10px';
                         header.style.marginTop = '10px';
                         header.style.borderRadius = '4px';
-                        header.style.color = theme.text;
+                        header.style.color = '#555555'; // Dark grey text
                         header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
                         container.appendChild(header);
                         lastDateStr = dayStr;
@@ -1033,7 +1034,10 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const title = taskTitleInput.value.trim();
                 const text = taskTextInput.value.trim();
-                const priority = document.querySelector('input[name="priority"]:checked').value;
+
+                // Safe Priority Check
+                const priorityEl = document.querySelector('input[name="priority"]:checked');
+                const priority = priorityEl ? priorityEl.value : 'normal'; // Default to normal if missing
 
                 if (title && activeGroupId) {
                     // --- Validation for Introduction Group ---
