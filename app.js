@@ -537,9 +537,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (dayStr !== lastDateStr) {
                         const header = document.createElement('li');
-                        // Glassmorphism styling as requested - Whiter
-                        header.style.backgroundColor = 'rgba(255, 255, 255, 0.75)'; // Whiter glass
-                        header.style.border = '1px solid rgba(255, 255, 255, 0.8)'; // More crisp border
+                        // Glassmorphism styling as requested - More transparent, no border
+                        header.style.backgroundColor = 'rgba(255, 255, 255, 0.55)'; // More transparent
+                        header.style.border = 'none'; // No border
                         header.style.backdropFilter = 'blur(4px)';
                         header.style.fontWeight = 'bold';
                         header.style.padding = '5px 10px';
