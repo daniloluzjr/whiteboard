@@ -23,12 +23,11 @@ body {
 
 .sidebar {
   width: 280px;
-  background-color: rgba(241, 243, 245, 0.85);
-  /* Semi-transparent */
-  backdrop-filter: blur(5px);
-  /* Nice glass effect */
+  background-color: rgba(255, 255, 255, 0.65); /* Glass */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 24px;
-  border-right: 1px solid #dee2e6;
+  border-right: 1px solid rgba(255, 255, 255, 0.4);
   display: flex;
   flex-direction: column;
 }
@@ -163,10 +162,11 @@ body {
 /* Status Pop-up */
 .status-popup {
   position: absolute;
-  background-color: #fff;
-  border: 1px solid #dee2e6;
+  background-color: rgba(255, 255, 255, 0.9); /* Glass-like */
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   padding: 8px;
   z-index: 100;
 }
@@ -209,12 +209,21 @@ body {
 }
 
 .task-card {
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.65); /* BASE GLASS EFFECT */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05); /* Soft shadow */
   position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
   /* Needed for positioning the delete button */
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
@@ -261,10 +270,13 @@ body {
 }
 
 .modal-content {
-  background-color: #fff;
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  background-color: rgba(255, 255, 255, 0.85); /* Glass Modal */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   text-align: center;
   width: 90%;
   max-width: 400px;
@@ -547,62 +559,46 @@ body {
   border-bottom: 1px solid #f1f3f5;
 }
 
-/* Visual Grouping Styles */
+/* Visual Grouping Styles - Tinted Glass */
 .task-card[data-group="coordinators"] {
   border-top: 5px solid #007bff;
-  /* Blue */
-  background-color: #f0f7ff;
-  /* Solid very light blue */
+  background-color: rgba(0, 123, 255, 0.05); /* Blue Tint */
 }
 
 .task-card[data-group="supervisors"] {
   border-top: 5px solid #28a745;
-  /* Green */
-  background-color: #f0fff3;
-  /* Solid very light green */
+  background-color: rgba(40, 167, 69, 0.05); /* Green Tint */
 }
 
-/* Dynamic Group Colors */
+/* Dynamic Group Colors - Tinted Glass */
 .task-card[data-color="purple"] {
   border-top: 5px solid #6f42c1;
-  /* Roxo */
-  background-color: #fbf5ff;
-  /* Solid light purple */
+  background-color: rgba(111, 66, 193, 0.05);
 }
 
 .task-card[data-color="orange"] {
   border-top: 5px solid #fd7e14;
-  /* Laranja */
-  background-color: #fff8f2;
-  /* Solid light orange */
+  background-color: rgba(253, 126, 20, 0.05);
 }
 
 .task-card[data-color="cyan"] {
   border-top: 5px solid #17a2b8;
-  /* Ciano */
-  background-color: #f2fdff;
-  /* Solid light cyan */
+  background-color: rgba(23, 162, 184, 0.05);
 }
 
 .task-card[data-color="pink"] {
   border-top: 5px solid #e83e8c;
-  /* Rosa */
-  background-color: #fff5f9;
-  /* Solid light pink */
+  background-color: rgba(232, 62, 140, 0.05);
 }
 
 .task-card[data-color="yellow"] {
   border-top: 5px solid #ffc107;
-  /* Amarelo */
-  background-color: #fffceb;
-  /* Solid light yellow */
+  background-color: rgba(255, 193, 7, 0.05);
 }
 
 .task-card[data-color="green"] {
   border-top: 5px solid #28a745;
-  /* Verde */
-  background-color: #f0fff3;
-  /* Solid light green */
+  background-color: rgba(40, 167, 69, 0.05);
 }
 
 /* --- Premium Notifications --- */
@@ -888,4 +884,3 @@ body {
     scrollbar-width: thin;
     scrollbar-color: #d6d6d6 transparent;
 }
-
