@@ -700,593 +700,596 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.appendChild(textSpan);
             }
 
-
-
-            window.addEventListener('click', () => {
-                if (!statusPopup.classList.contains('hidden')) {
-                    statusPopup.classList.add('hidden');
-                }
-            });
-
-            // --- Event Listeners (Global Grid) ---
-            addStickerBtn.addEventListener('click', async () => {
-                const timestamp = new Date().getTime().toString().slice(-4);
-                const name = `Group ${timestamp}`;
-                const color = dynamicCardColors[Math.floor(Math.random() * dynamicCardColors.length)];
-
-                const newGroup = await createGroupAPI(name, color);
-                if (newGroup) {
-                    renderGroup(newGroup);
-                }
-            });
-
-            tasksGrid.addEventListener('click', (e) => {
-                const target = e.target;
-
-                if (target.classList.contains('delete-sticker-btn')) {
-                    const card = target.closest('.task-card');
-                    if (card) {
-                        groupIdToDelete = card.dataset.group;
-                        confirmModalText.textContent = 'Are you sure you want to delete this entire group and all its tasks?';
-                        customConfirmModal.classList.remove('hidden');
-                    }
-                }
-                else if (target.classList.contains('add-task-item-btn')) {
-                    const card = target.closest('.task-card');
-                    if (card) {
-                        activeGroupId = card.dataset.group;
-                        activeGroupId = card.dataset.group;
-                        // Check if it's introduction group
-                        // Robust check: Check name in H3 or data-group match
-                        const groupTitle = card.querySelector('.card-header h3').innerText;
-
-                        if (groupTitle.toLowerCase().includes('introduction')) {
-                            activeGroupIsIntro = true;
-                        } else {
-                            activeGroupIsIntro = false;
-                        }
-                        showTaskModal('create');
-                    }
-                }
-                else if (target.closest('li')) {
-                    const li = target.closest('li');
-                    const card = li.closest('.task-card');
-
-                    currentTaskData = {
-                        id: li.dataset.id,
-                        title: li.querySelector('span:last-child').innerText.split(' - ')[0],
-                        description: li.dataset.text,
-                        created_at: li.dataset.creationDate,
-                        completed_at: li.dataset.completionDate,
-                        priority: li.dataset.priority,
-                        status: card.dataset.type === 'done' ? 'done' : 'todo',
-                        solution: li.dataset.solution,
-                        status: card.dataset.type === 'done' ? 'done' : 'todo',
-                        solution: li.dataset.solution,
-                        created_by: li.dataset.created_by, // Retrieve ownership info
-                        completed_by: li.dataset.completed_by || null, // NEW
-                        scheduled_at: li.dataset.scheduled_at || null // NEW
-                    };
-
-                    // Determine if this task belongs to Introduction group
-                    const groupName = card.querySelector('h3').textContent;
-                    activeGroupIsIntro = groupName.includes('Introduction');
-
-                    showTaskModal('view');
-                }
-            });
-
-            // --- Rename Logic ---
-            tasksGrid.addEventListener('dblclick', (e) => {
-                const target = e.target;
-                if (target.tagName === 'H3') {
-                    const cardHeader = target.parentElement;
-                    const currentTitle = target.textContent;
-                    const prefix = currentTitle.startsWith('To Do') ? 'To Do - ' : 'Tasks done - ';
-                    const baseTitle = currentTitle.replace(prefix, '');
-
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.value = baseTitle;
-                    input.className = 'title-edit-input';
-
-                    cardHeader.replaceChild(input, target);
-                    input.focus();
-
-                    const saveTitle = async () => {
-                        const newBaseTitle = input.value.trim();
-                        const card = cardHeader.closest('.task-card');
-                        const groupId = card.dataset.group;
-
-                        if (newBaseTitle) {
-                            const newH3 = document.createElement('h3');
-                            newH3.textContent = prefix + newBaseTitle;
-                            cardHeader.replaceChild(newH3, input);
-
-                            const otherType = card.dataset.type === 'todo' ? 'done' : 'todo';
-                            const otherCard = document.querySelector(`.task-card[data-group="${groupId}"][data-type="${otherType}"]`);
-                            if (otherCard) {
-                                const otherH3 = otherCard.querySelector('h3');
-                                const otherPrefix = otherType === 'todo' ? 'To Do - ' : 'Tasks done - ';
-                                otherH3.textContent = otherPrefix + newBaseTitle;
-                            }
-
-                            await renameGroupAPI(groupId, newBaseTitle);
-                        } else {
-                            const oldH3 = document.createElement('h3');
-                            oldH3.textContent = currentTitle;
-                            cardHeader.replaceChild(oldH3, input);
-                        }
-                    };
-
-                    input.addEventListener('blur', saveTitle);
-                    input.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter') saveTitle();
-                    });
-                }
-            });
-
-            // --- Confirm Delete Modal ---
-            confirmDeleteBtn.addEventListener('click', async () => {
-                // Case 1: Deleting a Group
-                if (groupIdToDelete) {
-                    const success = await deleteGroupAPI(groupIdToDelete);
-                    if (success) {
-                        const cards = document.querySelectorAll(`.task-card[data-group="${groupIdToDelete}"]`);
-                        cards.forEach(card => card.remove());
-                    }
-                    groupIdToDelete = null;
-                }
-                // Case 2: Deleting a Task (New)
-                else if (window.pendingDeleteTaskId) {
-                    const success = await deleteTaskAPI(window.pendingDeleteTaskId); // Need to implement this
-                    if (success) {
-                        loadGroups(); // Refresh to remove from UI
-                        showNotification('Task deleted.', 'success');
-                    }
-                    window.pendingDeleteTaskId = null;
-                }
-
-                customConfirmModal.classList.add('hidden');
-            });
-
-            cancelDeleteBtn.addEventListener('click', () => {
-                customConfirmModal.classList.add('hidden');
-                groupIdToDelete = null;
-                window.pendingDeleteTaskId = null;
-            });
-
-            // --- Task Modal ---
-            function showTaskModal(mode) {
-                taskModal.classList.remove('hidden');
-
-                if (mode === 'create') {
-                    taskModalTitle.textContent = 'New Task';
-                    taskTitleInput.value = '';
-                    taskTextInput.value = '';
-                    taskTitleInput.readOnly = false;
-                    taskTextInput.readOnly = false;
-
-                    saveTaskBtn.classList.remove('hidden');
-                    completeTaskBtn.classList.add('hidden');
-                    taskDates.classList.add('hidden');
-                    // Hide solution in create mode
-                    document.getElementById('solution-label').classList.add('hidden');
-                    document.getElementById('task-solution-input').classList.add('hidden');
-                    document.getElementById('task-solution-input').value = '';
-                    document.getElementById('task-solution-input').value = '';
-                    document.getElementById('delete-task-btn').classList.add('hidden'); // Fix: Ensure delete button is hidden
-
-                    // Handle Schedule Input
-                    const scheduleContainer = document.getElementById('schedule-container');
-                    const scheduleInput = document.getElementById('task-schedule-input');
-
-                    if (activeGroupIsIntro) {
-                        scheduleContainer.classList.remove('hidden');
-                        taskTextInput.classList.remove('hidden');
-                        scheduleInput.value = ''; // Reset
-                        scheduleInput.readOnly = false; // Ensure editable!
-                        taskTitleInput.placeholder = "Client Name";
-                        taskTextInput.placeholder = "Carer Name";
-                    } else {
-                        scheduleContainer.classList.add('hidden');
-                        taskTextInput.classList.remove('hidden'); // Fix: Show for everyone
-                        taskTitleInput.placeholder = "Task Title";
-                        taskTextInput.placeholder = "Task description...";
-                    }
-                } else if (mode === 'view') {
-                    taskModalTitle.textContent = 'Task Details';
-                    taskTitleInput.value = currentTaskData.title;
-                    taskTextInput.value = currentTaskData.description || '';
-                    taskTitleInput.readOnly = true;
-                    taskTextInput.readOnly = true;
-
-                    // Toggle visibility based on group type
-                    if (activeGroupIsIntro) {
-                        taskTextInput.classList.remove('hidden');
-                    } else {
-                        taskTextInput.classList.remove('hidden'); // Fix: Show for everyone
-                    }
-
-                    // Solution Field Logic
-                    const solutionInput = document.getElementById('task-solution-input');
-                    const solutionLabel = document.getElementById('solution-label');
-                    solutionInput.value = currentTaskData.solution || '';
-
-                    if (currentTaskData.status === 'done') {
-                        // If done, show solution as read-only
-                        saveTaskBtn.classList.add('hidden');
-                        completeTaskBtn.classList.add('hidden');
-                        solutionInput.readOnly = true;
-                        solutionLabel.classList.remove('hidden');
-                        solutionInput.classList.remove('hidden');
-                    } else {
-                        // If todo, allow writing solution
-                        saveTaskBtn.classList.add('hidden');
-                        completeTaskBtn.classList.remove('hidden');
-                        solutionInput.readOnly = false;
-                        solutionLabel.classList.remove('hidden');
-                        solutionInput.classList.remove('hidden');
-                    }
-
-                    taskDates.classList.remove('hidden');
-                    if (currentTaskData.created_at) {
-                        const createdDateStr = new Date(currentTaskData.created_at).toLocaleString('pt-BR');
-                        let createdByStr = '';
-
-                        if (currentTaskData.created_by && allUsersCache[currentTaskData.created_by]) {
-                            createdByStr = ` by ${allUsersCache[currentTaskData.created_by]}`;
-                        }
-
-                        creationDateSpan.textContent = createdDateStr + createdByStr;
-                    }
-                    if (currentTaskData.completed_at) {
-                        const completedDateStr = new Date(currentTaskData.completed_at).toLocaleString('pt-BR');
-                        let completedByStr = '';
-
-                        if (currentTaskData.completed_by && allUsersCache[currentTaskData.completed_by]) {
-                            completedByStr = ` by ${allUsersCache[currentTaskData.completed_by]}`;
-                        }
-
-                        completionDateSpan.textContent = completedDateStr + completedByStr;
-                    } else {
-                        completionDateSpan.textContent = 'Pending...';
-                    }
-
-                    if (currentTaskData.priority) {
-                        const radio = document.querySelector(`input[name="priority"][value="${currentTaskData.priority}"]`);
-                        if (radio) radio.checked = true;
-                    }
-                    document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = true);
-
-                    // --- DELETE BUTTON LOGIC ---
-                    // Show for ALL existing tasks (ToDo or Done)
-                    // Hide only for new tasks (managed by 'create' mode block)
-                    // --- DELETE BUTTON LOGIC ---
-                    // Show for ALL existing tasks (ToDo or Done)
-                    // Hide only for new tasks (managed by 'create' mode block)
-                    const deleteBtn = document.getElementById('delete-task-btn');
-                    deleteBtn.classList.remove('hidden');
-
-                    // Handle Schedule Input View
-                    const scheduleContainer = document.getElementById('schedule-container');
-                    const scheduleInput = document.getElementById('task-schedule-input');
-                    if (currentTaskData.scheduled_at) {
-                        scheduleContainer.classList.remove('hidden');
-                        // Format for input: YYYY-MM-DDTHH:MM
-                        const dt = safeDate(currentTaskData.scheduled_at);
-                        if (dt && !isNaN(dt.getTime())) {
-                            dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); // Local time adjustment
-                            scheduleInput.value = dt.toISOString().slice(0, 16);
-                        }
-                        scheduleInput.readOnly = true; // Read only in view mode? Or allow edit? Let's allow edit if TODO.
-
-                        if (currentTaskData.status === 'done') {
-                            scheduleInput.readOnly = true;
-                        } else {
-                            scheduleInput.readOnly = false; // Allow rescheduling if needed
-                        }
-                    } else {
-                        scheduleContainer.classList.add('hidden');
-                    }
-                }
-            }
-
-            function hideTaskModal() {
-                taskModal.classList.add('hidden');
-                activeGroupId = null;
-                currentTaskData = null;
-                document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = false);
-            }
-
-            closeTaskModalBtn.addEventListener('click', hideTaskModal);
-
-            saveTaskBtn.addEventListener('click', async () => {
-                const title = taskTitleInput.value.trim();
-                const text = taskTextInput.value.trim();
-                const priority = document.querySelector('input[name="priority"]:checked').value;
-
-                if (title && activeGroupId) {
-                    // --- Validation for Introduction Group ---
-                    const scheduleInput = document.getElementById('task-schedule-input');
-                    if (activeGroupIsIntro && !scheduleInput.value) {
-                        showNotification('Please select a Date & Time for the Introduction.', 'error');
-                        return;
-                    }
-                    // -----------------------------------------
-
-                    // --- Duplicate Check ---
-                    // Skip duplicate check for Introduction group (schedule allows repeats)
-                    if (!activeGroupIsIntro) {
-                        const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
-                        if (groupCard) {
-                            const existingLis = groupCard.querySelectorAll('li');
-                            let isDuplicate = false;
-                            existingLis.forEach(li => {
-                                const existingTitle = li.dataset.title || li.querySelector('span:last-child').innerText.split(' - ')[0].trim();
-                                if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
-                                    isDuplicate = true;
-                                }
-                            });
-
-                            if (isDuplicate) {
-                                showNotification('Task with this name already exists in this group!', 'error');
-                                return; // Stop creation
-                            }
-                        }
-                    }
-                    // -----------------------
-
-                    // Format Date for MySQL (YYYY-MM-DD HH:MM:SS)
-                    let formattedScheduledAt = null;
-                    const rawDate = document.getElementById('task-schedule-input').value;
-                    if (rawDate) {
-                        // rawDate is usually YYYY-MM-DDTHH:MM
-                        formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
-                    }
-
-                    const newTask = await createTaskAPI({
-                        group_id: activeGroupId,
-                        title: title,
-                        description: text,
-                        priority: priority,
-                        status: 'todo',
-                        scheduled_at: formattedScheduledAt // Send formatted date
-                    });
-
-                    if (newTask) {
-                        await loadGroups(); // Reload all groups to ensure correct sorting/grouping matches Server state
-                        hideTaskModal();
-                    }
-                }
-            });
-
-            completeTaskBtn.addEventListener('click', async () => {
-                if (currentTaskData && currentTaskData.id) {
-                    // MySQL Friendly Date Format: YYYY-MM-DD HH:MM:SS
-                    const now = new Date();
-                    const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
-                    const solution = document.getElementById('task-solution-input').value.trim();
-
-                    const success = await updateTaskAPI(currentTaskData.id, {
-                        status: 'done',
-                        completed_at: mysqlDate,
-                        solution: solution // Save solution text
-                    });
-
-                    if (success) {
-                        hideTaskModal();
-                        loadGroups(); // Refresh UI
-                        showNotification('Task marked as done!', 'success');
-                    } else {
-                        showNotification('Failed to update task status.', 'error');
-                    }
-                }
-            });
-
-
-            // --- DELETE BUTTON LISTENER ---
-            const deleteTaskBtn = document.getElementById('delete-task-btn');
-            deleteTaskBtn.addEventListener('click', () => {
-                if (currentTaskData && currentTaskData.id) {
-                    // Set pending ID for confirmation modal
-                    window.pendingDeleteTaskId = currentTaskData.id;
-                    // Stronger warning as requested
-                    const confirmModalText = document.querySelector('.modal-content p');
-                    confirmModalText.innerHTML = 'Are you sure you want to delete this task?<br><br><strong>WARNING: This action cannot be undone. The task will be permanently removed for EVERYONE.</strong>';
-                    customConfirmModal.classList.remove('hidden');
-                    hideTaskModal(); // Close the task detail modal
-                }
-            });
-
-            filterInput.addEventListener('input', () => {
-                const filterText = filterInput.value.toLowerCase().trim();
-                const allCards = document.querySelectorAll('.task-card');
-                const groupsToShow = new Set();
-
-                allCards.forEach(card => {
-                    const title = card.querySelector('h3').textContent.toLowerCase();
-                    if (title.includes(filterText)) {
-                        groupsToShow.add(card.dataset.group);
-                    }
-                });
-
-                allCards.forEach(card => {
-                    if (groupsToShow.has(card.dataset.group)) {
-                        card.style.display = '';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-            });
-
-
-
-            // --- INITIALIZATION ---
-            // --- INITIALIZATION ---
-            (async () => {
-                try {
-                    await setupFixedGroups();
-                    await loadGroups();
-                    await loadUsers(); // Ensure users load too
-                } catch (e) {
-                    console.error(e);
-                    alert("Init Failed: " + e.message);
-                }
-            })();
-
-
-
+            return li;
         }
 
-        // --- HELPERS ---
-        function showNotification(message, type = 'success') {
-            const container = document.getElementById('notification-container');
-            if (!container) return;
 
-            const toast = document.createElement('div');
-            toast.className = `notification-toast ${type}`;
-            toast.innerHTML = `
+
+        window.addEventListener('click', () => {
+            if (!statusPopup.classList.contains('hidden')) {
+                statusPopup.classList.add('hidden');
+            }
+        });
+
+        // --- Event Listeners (Global Grid) ---
+        addStickerBtn.addEventListener('click', async () => {
+            const timestamp = new Date().getTime().toString().slice(-4);
+            const name = `Group ${timestamp}`;
+            const color = dynamicCardColors[Math.floor(Math.random() * dynamicCardColors.length)];
+
+            const newGroup = await createGroupAPI(name, color);
+            if (newGroup) {
+                renderGroup(newGroup);
+            }
+        });
+
+        tasksGrid.addEventListener('click', (e) => {
+            const target = e.target;
+
+            if (target.classList.contains('delete-sticker-btn')) {
+                const card = target.closest('.task-card');
+                if (card) {
+                    groupIdToDelete = card.dataset.group;
+                    confirmModalText.textContent = 'Are you sure you want to delete this entire group and all its tasks?';
+                    customConfirmModal.classList.remove('hidden');
+                }
+            }
+            else if (target.classList.contains('add-task-item-btn')) {
+                const card = target.closest('.task-card');
+                if (card) {
+                    activeGroupId = card.dataset.group;
+                    activeGroupId = card.dataset.group;
+                    // Check if it's introduction group
+                    // Robust check: Check name in H3 or data-group match
+                    const groupTitle = card.querySelector('.card-header h3').innerText;
+
+                    if (groupTitle.toLowerCase().includes('introduction')) {
+                        activeGroupIsIntro = true;
+                    } else {
+                        activeGroupIsIntro = false;
+                    }
+                    showTaskModal('create');
+                }
+            }
+            else if (target.closest('li')) {
+                const li = target.closest('li');
+                const card = li.closest('.task-card');
+
+                currentTaskData = {
+                    id: li.dataset.id,
+                    title: li.querySelector('span:last-child').innerText.split(' - ')[0],
+                    description: li.dataset.text,
+                    created_at: li.dataset.creationDate,
+                    completed_at: li.dataset.completionDate,
+                    priority: li.dataset.priority,
+                    status: card.dataset.type === 'done' ? 'done' : 'todo',
+                    solution: li.dataset.solution,
+                    status: card.dataset.type === 'done' ? 'done' : 'todo',
+                    solution: li.dataset.solution,
+                    created_by: li.dataset.created_by, // Retrieve ownership info
+                    completed_by: li.dataset.completed_by || null, // NEW
+                    scheduled_at: li.dataset.scheduled_at || null // NEW
+                };
+
+                // Determine if this task belongs to Introduction group
+                const groupName = card.querySelector('h3').textContent;
+                activeGroupIsIntro = groupName.includes('Introduction');
+
+                showTaskModal('view');
+            }
+        });
+
+        // --- Rename Logic ---
+        tasksGrid.addEventListener('dblclick', (e) => {
+            const target = e.target;
+            if (target.tagName === 'H3') {
+                const cardHeader = target.parentElement;
+                const currentTitle = target.textContent;
+                const prefix = currentTitle.startsWith('To Do') ? 'To Do - ' : 'Tasks done - ';
+                const baseTitle = currentTitle.replace(prefix, '');
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = baseTitle;
+                input.className = 'title-edit-input';
+
+                cardHeader.replaceChild(input, target);
+                input.focus();
+
+                const saveTitle = async () => {
+                    const newBaseTitle = input.value.trim();
+                    const card = cardHeader.closest('.task-card');
+                    const groupId = card.dataset.group;
+
+                    if (newBaseTitle) {
+                        const newH3 = document.createElement('h3');
+                        newH3.textContent = prefix + newBaseTitle;
+                        cardHeader.replaceChild(newH3, input);
+
+                        const otherType = card.dataset.type === 'todo' ? 'done' : 'todo';
+                        const otherCard = document.querySelector(`.task-card[data-group="${groupId}"][data-type="${otherType}"]`);
+                        if (otherCard) {
+                            const otherH3 = otherCard.querySelector('h3');
+                            const otherPrefix = otherType === 'todo' ? 'To Do - ' : 'Tasks done - ';
+                            otherH3.textContent = otherPrefix + newBaseTitle;
+                        }
+
+                        await renameGroupAPI(groupId, newBaseTitle);
+                    } else {
+                        const oldH3 = document.createElement('h3');
+                        oldH3.textContent = currentTitle;
+                        cardHeader.replaceChild(oldH3, input);
+                    }
+                };
+
+                input.addEventListener('blur', saveTitle);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') saveTitle();
+                });
+            }
+        });
+
+        // --- Confirm Delete Modal ---
+        confirmDeleteBtn.addEventListener('click', async () => {
+            // Case 1: Deleting a Group
+            if (groupIdToDelete) {
+                const success = await deleteGroupAPI(groupIdToDelete);
+                if (success) {
+                    const cards = document.querySelectorAll(`.task-card[data-group="${groupIdToDelete}"]`);
+                    cards.forEach(card => card.remove());
+                }
+                groupIdToDelete = null;
+            }
+            // Case 2: Deleting a Task (New)
+            else if (window.pendingDeleteTaskId) {
+                const success = await deleteTaskAPI(window.pendingDeleteTaskId); // Need to implement this
+                if (success) {
+                    loadGroups(); // Refresh to remove from UI
+                    showNotification('Task deleted.', 'success');
+                }
+                window.pendingDeleteTaskId = null;
+            }
+
+            customConfirmModal.classList.add('hidden');
+        });
+
+        cancelDeleteBtn.addEventListener('click', () => {
+            customConfirmModal.classList.add('hidden');
+            groupIdToDelete = null;
+            window.pendingDeleteTaskId = null;
+        });
+
+        // --- Task Modal ---
+        function showTaskModal(mode) {
+            taskModal.classList.remove('hidden');
+
+            if (mode === 'create') {
+                taskModalTitle.textContent = 'New Task';
+                taskTitleInput.value = '';
+                taskTextInput.value = '';
+                taskTitleInput.readOnly = false;
+                taskTextInput.readOnly = false;
+
+                saveTaskBtn.classList.remove('hidden');
+                completeTaskBtn.classList.add('hidden');
+                taskDates.classList.add('hidden');
+                // Hide solution in create mode
+                document.getElementById('solution-label').classList.add('hidden');
+                document.getElementById('task-solution-input').classList.add('hidden');
+                document.getElementById('task-solution-input').value = '';
+                document.getElementById('task-solution-input').value = '';
+                document.getElementById('delete-task-btn').classList.add('hidden'); // Fix: Ensure delete button is hidden
+
+                // Handle Schedule Input
+                const scheduleContainer = document.getElementById('schedule-container');
+                const scheduleInput = document.getElementById('task-schedule-input');
+
+                if (activeGroupIsIntro) {
+                    scheduleContainer.classList.remove('hidden');
+                    taskTextInput.classList.remove('hidden');
+                    scheduleInput.value = ''; // Reset
+                    scheduleInput.readOnly = false; // Ensure editable!
+                    taskTitleInput.placeholder = "Client Name";
+                    taskTextInput.placeholder = "Carer Name";
+                } else {
+                    scheduleContainer.classList.add('hidden');
+                    taskTextInput.classList.remove('hidden'); // Fix: Show for everyone
+                    taskTitleInput.placeholder = "Task Title";
+                    taskTextInput.placeholder = "Task description...";
+                }
+            } else if (mode === 'view') {
+                taskModalTitle.textContent = 'Task Details';
+                taskTitleInput.value = currentTaskData.title;
+                taskTextInput.value = currentTaskData.description || '';
+                taskTitleInput.readOnly = true;
+                taskTextInput.readOnly = true;
+
+                // Toggle visibility based on group type
+                if (activeGroupIsIntro) {
+                    taskTextInput.classList.remove('hidden');
+                } else {
+                    taskTextInput.classList.remove('hidden'); // Fix: Show for everyone
+                }
+
+                // Solution Field Logic
+                const solutionInput = document.getElementById('task-solution-input');
+                const solutionLabel = document.getElementById('solution-label');
+                solutionInput.value = currentTaskData.solution || '';
+
+                if (currentTaskData.status === 'done') {
+                    // If done, show solution as read-only
+                    saveTaskBtn.classList.add('hidden');
+                    completeTaskBtn.classList.add('hidden');
+                    solutionInput.readOnly = true;
+                    solutionLabel.classList.remove('hidden');
+                    solutionInput.classList.remove('hidden');
+                } else {
+                    // If todo, allow writing solution
+                    saveTaskBtn.classList.add('hidden');
+                    completeTaskBtn.classList.remove('hidden');
+                    solutionInput.readOnly = false;
+                    solutionLabel.classList.remove('hidden');
+                    solutionInput.classList.remove('hidden');
+                }
+
+                taskDates.classList.remove('hidden');
+                if (currentTaskData.created_at) {
+                    const createdDateStr = new Date(currentTaskData.created_at).toLocaleString('pt-BR');
+                    let createdByStr = '';
+
+                    if (currentTaskData.created_by && allUsersCache[currentTaskData.created_by]) {
+                        createdByStr = ` by ${allUsersCache[currentTaskData.created_by]}`;
+                    }
+
+                    creationDateSpan.textContent = createdDateStr + createdByStr;
+                }
+                if (currentTaskData.completed_at) {
+                    const completedDateStr = new Date(currentTaskData.completed_at).toLocaleString('pt-BR');
+                    let completedByStr = '';
+
+                    if (currentTaskData.completed_by && allUsersCache[currentTaskData.completed_by]) {
+                        completedByStr = ` by ${allUsersCache[currentTaskData.completed_by]}`;
+                    }
+
+                    completionDateSpan.textContent = completedDateStr + completedByStr;
+                } else {
+                    completionDateSpan.textContent = 'Pending...';
+                }
+
+                if (currentTaskData.priority) {
+                    const radio = document.querySelector(`input[name="priority"][value="${currentTaskData.priority}"]`);
+                    if (radio) radio.checked = true;
+                }
+                document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = true);
+
+                // --- DELETE BUTTON LOGIC ---
+                // Show for ALL existing tasks (ToDo or Done)
+                // Hide only for new tasks (managed by 'create' mode block)
+                // --- DELETE BUTTON LOGIC ---
+                // Show for ALL existing tasks (ToDo or Done)
+                // Hide only for new tasks (managed by 'create' mode block)
+                const deleteBtn = document.getElementById('delete-task-btn');
+                deleteBtn.classList.remove('hidden');
+
+                // Handle Schedule Input View
+                const scheduleContainer = document.getElementById('schedule-container');
+                const scheduleInput = document.getElementById('task-schedule-input');
+                if (currentTaskData.scheduled_at) {
+                    scheduleContainer.classList.remove('hidden');
+                    // Format for input: YYYY-MM-DDTHH:MM
+                    const dt = safeDate(currentTaskData.scheduled_at);
+                    if (dt && !isNaN(dt.getTime())) {
+                        dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); // Local time adjustment
+                        scheduleInput.value = dt.toISOString().slice(0, 16);
+                    }
+                    scheduleInput.readOnly = true; // Read only in view mode? Or allow edit? Let's allow edit if TODO.
+
+                    if (currentTaskData.status === 'done') {
+                        scheduleInput.readOnly = true;
+                    } else {
+                        scheduleInput.readOnly = false; // Allow rescheduling if needed
+                    }
+                } else {
+                    scheduleContainer.classList.add('hidden');
+                }
+            }
+        }
+
+        function hideTaskModal() {
+            taskModal.classList.add('hidden');
+            activeGroupId = null;
+            currentTaskData = null;
+            document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = false);
+        }
+
+        closeTaskModalBtn.addEventListener('click', hideTaskModal);
+
+        saveTaskBtn.addEventListener('click', async () => {
+            const title = taskTitleInput.value.trim();
+            const text = taskTextInput.value.trim();
+            const priority = document.querySelector('input[name="priority"]:checked').value;
+
+            if (title && activeGroupId) {
+                // --- Validation for Introduction Group ---
+                const scheduleInput = document.getElementById('task-schedule-input');
+                if (activeGroupIsIntro && !scheduleInput.value) {
+                    showNotification('Please select a Date & Time for the Introduction.', 'error');
+                    return;
+                }
+                // -----------------------------------------
+
+                // --- Duplicate Check ---
+                // Skip duplicate check for Introduction group (schedule allows repeats)
+                if (!activeGroupIsIntro) {
+                    const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
+                    if (groupCard) {
+                        const existingLis = groupCard.querySelectorAll('li');
+                        let isDuplicate = false;
+                        existingLis.forEach(li => {
+                            const existingTitle = li.dataset.title || li.querySelector('span:last-child').innerText.split(' - ')[0].trim();
+                            if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
+                                isDuplicate = true;
+                            }
+                        });
+
+                        if (isDuplicate) {
+                            showNotification('Task with this name already exists in this group!', 'error');
+                            return; // Stop creation
+                        }
+                    }
+                }
+                // -----------------------
+
+                // Format Date for MySQL (YYYY-MM-DD HH:MM:SS)
+                let formattedScheduledAt = null;
+                const rawDate = document.getElementById('task-schedule-input').value;
+                if (rawDate) {
+                    // rawDate is usually YYYY-MM-DDTHH:MM
+                    formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
+                }
+
+                const newTask = await createTaskAPI({
+                    group_id: activeGroupId,
+                    title: title,
+                    description: text,
+                    priority: priority,
+                    status: 'todo',
+                    scheduled_at: formattedScheduledAt // Send formatted date
+                });
+
+                if (newTask) {
+                    await loadGroups(); // Reload all groups to ensure correct sorting/grouping matches Server state
+                    hideTaskModal();
+                }
+            }
+        });
+
+        completeTaskBtn.addEventListener('click', async () => {
+            if (currentTaskData && currentTaskData.id) {
+                // MySQL Friendly Date Format: YYYY-MM-DD HH:MM:SS
+                const now = new Date();
+                const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
+                const solution = document.getElementById('task-solution-input').value.trim();
+
+                const success = await updateTaskAPI(currentTaskData.id, {
+                    status: 'done',
+                    completed_at: mysqlDate,
+                    solution: solution // Save solution text
+                });
+
+                if (success) {
+                    hideTaskModal();
+                    loadGroups(); // Refresh UI
+                    showNotification('Task marked as done!', 'success');
+                } else {
+                    showNotification('Failed to update task status.', 'error');
+                }
+            }
+        });
+
+
+        // --- DELETE BUTTON LISTENER ---
+        const deleteTaskBtn = document.getElementById('delete-task-btn');
+        deleteTaskBtn.addEventListener('click', () => {
+            if (currentTaskData && currentTaskData.id) {
+                // Set pending ID for confirmation modal
+                window.pendingDeleteTaskId = currentTaskData.id;
+                // Stronger warning as requested
+                const confirmModalText = document.querySelector('.modal-content p');
+                confirmModalText.innerHTML = 'Are you sure you want to delete this task?<br><br><strong>WARNING: This action cannot be undone. The task will be permanently removed for EVERYONE.</strong>';
+                customConfirmModal.classList.remove('hidden');
+                hideTaskModal(); // Close the task detail modal
+            }
+        });
+
+        filterInput.addEventListener('input', () => {
+            const filterText = filterInput.value.toLowerCase().trim();
+            const allCards = document.querySelectorAll('.task-card');
+            const groupsToShow = new Set();
+
+            allCards.forEach(card => {
+                const title = card.querySelector('h3').textContent.toLowerCase();
+                if (title.includes(filterText)) {
+                    groupsToShow.add(card.dataset.group);
+                }
+            });
+
+            allCards.forEach(card => {
+                if (groupsToShow.has(card.dataset.group)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+
+
+        // --- INITIALIZATION ---
+        // --- INITIALIZATION ---
+        (async () => {
+            try {
+                await setupFixedGroups();
+                await loadGroups();
+                await loadUsers(); // Ensure users load too
+            } catch (e) {
+                console.error(e);
+                alert("Init Failed: " + e.message);
+            }
+        })();
+
+
+
+    }
+
+    // --- HELPERS ---
+    function showNotification(message, type = 'success') {
+        const container = document.getElementById('notification-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `notification-toast ${type}`;
+        toast.innerHTML = `
             <span>${message}</span>
             <button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.2rem;">&times;</button>
         `;
 
-            container.appendChild(toast);
+        container.appendChild(toast);
 
-            // Auto remove after 3s (animation handles visual ease out)
-            setTimeout(() => {
-                if (toast.parentElement) toast.remove();
-            }, 3000);
+        // Auto remove after 3s (animation handles visual ease out)
+        setTimeout(() => {
+            if (toast.parentElement) toast.remove();
+        }, 3000);
+    }
+
+    // --- LOGIN LOGIC ---
+    if (isLoginPage) {
+        // Auto-Redirect if already logged in
+        const existingToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        if (existingToken) {
+            window.location.href = 'whiteboard.html';
         }
 
-        // --- LOGIN LOGIC ---
-        if (isLoginPage) {
-            // Auto-Redirect if already logged in
-            const existingToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-            if (existingToken) {
-                window.location.href = 'whiteboard.html';
-            }
+        const loginContainer = document.getElementById('login-container');
+        const registerContainer = document.getElementById('register-container');
+        const showRegisterLink = document.getElementById('show-register');
+        const showLoginLink = document.getElementById('show-login');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
 
-            const loginContainer = document.getElementById('login-container');
-            const registerContainer = document.getElementById('register-container');
-            const showRegisterLink = document.getElementById('show-register');
-            const showLoginLink = document.getElementById('show-login');
-            const loginForm = document.getElementById('login-form');
-            const registerForm = document.getElementById('register-form');
-
-            // --- Auto-Fill Email ---
-            const savedEmail = localStorage.getItem('savedEmail');
-            if (savedEmail) {
-                document.getElementById('login-email').value = savedEmail;
-                document.getElementById('remember-me').checked = true;
-            }
-            // -----------------------
-
-            // Toggle Forms
-            showRegisterLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                loginContainer.classList.add('hidden');
-                registerContainer.classList.remove('hidden');
-            });
-            showLoginLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                registerContainer.classList.add('hidden');
-                loginContainer.classList.remove('hidden');
-            });
-
-            // Register Logic
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const btn = registerForm.querySelector('button');
-                const originalText = btn.innerText;
-                btn.innerText = "Loading...";
-                btn.disabled = true;
-
-                const name = document.getElementById('register-name').value;
-                const email = document.getElementById('register-email').value;
-                const password = document.getElementById('register-password').value;
-                const confirmPassword = document.getElementById('register-confirm-password').value;
-
-                if (password !== confirmPassword) {
-                    showNotification("Passwords do not match!", 'error');
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`${API_URL}/register`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, email, password })
-                    });
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        showNotification('Registration successful! Please login.', 'success');
-                        setTimeout(() => showLoginLink.click(), 1500);
-                    } else {
-                        showNotification(data.error || 'Registration failed', 'error');
-                    }
-                } catch (error) {
-                    console.error("Fetch error:", error);
-                    showNotification('Error connecting to server.', 'error');
-                } finally {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                }
-            });
-
-            // Login Logic
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const btn = loginForm.querySelector('button');
-                const originalText = btn.innerText;
-                btn.innerText = "Loading...";
-                btn.disabled = true;
-
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                const rememberMe = document.getElementById('remember-me').checked;
-
-                try {
-                    const response = await fetch(`${API_URL}/login`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password })
-                    });
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        showNotification('Login successful! Redirecting...', 'success');
-
-                        // --- Storage Logic ---
-                        if (rememberMe) {
-                            // Persist session + email
-                            localStorage.setItem('authToken', data.token);
-                            localStorage.setItem('user', JSON.stringify(data.user));
-                            localStorage.setItem('savedEmail', email); // Save email for next time
-                        } else {
-                            // Session only + clear saved email
-                            sessionStorage.setItem('authToken', data.token);
-                            sessionStorage.setItem('user', JSON.stringify(data.user));
-                            localStorage.removeItem('savedEmail'); // Clear if they unchecked it
-                        }
-
-                        setTimeout(() => {
-                            window.location.href = 'whiteboard.html';
-                        }, 1000);
-                    } else {
-                        showNotification(data.error || 'Login failed', 'error');
-                    }
-                } catch (error) {
-                    console.error("Fetch error:", error);
-                    showNotification('Error connecting to server.', 'error');
-                } finally {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                }
-            });
+        // --- Auto-Fill Email ---
+        const savedEmail = localStorage.getItem('savedEmail');
+        if (savedEmail) {
+            document.getElementById('login-email').value = savedEmail;
+            document.getElementById('remember-me').checked = true;
         }
+        // -----------------------
 
-    });
+        // Toggle Forms
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginContainer.classList.add('hidden');
+            registerContainer.classList.remove('hidden');
+        });
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerContainer.classList.add('hidden');
+            loginContainer.classList.remove('hidden');
+        });
+
+        // Register Logic
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = registerForm.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = "Loading...";
+            btn.disabled = true;
+
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+
+            if (password !== confirmPassword) {
+                showNotification("Passwords do not match!", 'error');
+                btn.innerText = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Registration successful! Please login.', 'success');
+                    setTimeout(() => showLoginLink.click(), 1500);
+                } else {
+                    showNotification(data.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                console.error("Fetch error:", error);
+                showNotification('Error connecting to server.', 'error');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        // Login Logic
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = loginForm.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = "Loading...";
+            btn.disabled = true;
+
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Login successful! Redirecting...', 'success');
+
+                    // --- Storage Logic ---
+                    if (rememberMe) {
+                        // Persist session + email
+                        localStorage.setItem('authToken', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.setItem('savedEmail', email); // Save email for next time
+                    } else {
+                        // Session only + clear saved email
+                        sessionStorage.setItem('authToken', data.token);
+                        sessionStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.removeItem('savedEmail'); // Clear if they unchecked it
+                    }
+
+                    setTimeout(() => {
+                        window.location.href = 'whiteboard.html';
+                    }, 1000);
+                } else {
+                    showNotification(data.error || 'Login failed', 'error');
+                }
+            } catch (error) {
+                console.error("Fetch error:", error);
+                showNotification('Error connecting to server.', 'error');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+    }
+
+});
