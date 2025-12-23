@@ -554,13 +554,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const todoContainer = todoCard.querySelector('ul');
                 const doneContainer = doneCard.querySelector('ul');
 
+                // Determine color based on name if group.color is missing (Legacy Fix)
+                let groupColor = group.color;
+                if (!groupColor) {
+                    if (group.name === 'Coordinators') groupColor = 'yellow';
+                    else if (group.name === 'Supervisors') groupColor = 'green';
+                    else if (group.name.includes('Introduction')) groupColor = 'cyan';
+                }
+
                 // ToDo: Group by Created At (Newest First)
                 const todoTasks = group.tasks.filter(t => t.status !== 'done');
-                renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false, group.color);
+                renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false, groupColor);
 
                 // Done: Group by Completed At (Newest First)
                 const doneTasks = group.tasks.filter(t => t.status === 'done');
-                renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false, group.color);
+                renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false, groupColor);
             }
         }
 
@@ -1014,65 +1022,72 @@ document.addEventListener('DOMContentLoaded', () => {
         closeTaskModalBtn.addEventListener('click', hideTaskModal);
 
         saveTaskBtn.addEventListener('click', async () => {
-            const title = taskTitleInput.value.trim();
-            const text = taskTextInput.value.trim();
-            const priority = document.querySelector('input[name="priority"]:checked').value;
+            try {
+                const title = taskTitleInput.value.trim();
+                const text = taskTextInput.value.trim();
+                const priority = document.querySelector('input[name="priority"]:checked').value;
 
-            if (title && activeGroupId) {
-                // --- Validation for Introduction Group ---
-                const scheduleInput = document.getElementById('task-schedule-input');
-                if (activeGroupIsIntro && !scheduleInput.value) {
-                    showNotification('Please select a Date & Time for the Introduction.', 'error');
-                    return;
-                }
-                // -----------------------------------------
+                if (title && activeGroupId) {
+                    // --- Validation for Introduction Group ---
+                    const scheduleInput = document.getElementById('task-schedule-input');
+                    if (activeGroupIsIntro && !scheduleInput.value) {
+                        showNotification('Please select a Date & Time for the Introduction.', 'error');
+                        return;
+                    }
+                    // -----------------------------------------
 
-                // --- Duplicate Check ---
-                // Skip duplicate check for Introduction group (schedule allows repeats)
-                if (!activeGroupIsIntro) {
-                    const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
-                    if (groupCard) {
-                        const existingLis = groupCard.querySelectorAll('li');
-                        let isDuplicate = false;
-                        existingLis.forEach(li => {
-                            // Skip Header LIs (they don't have dataset.id)
-                            if (!li.dataset.id) return;
+                    // --- Duplicate Check ---
+                    // Skip duplicate check for Introduction group (schedule allows repeats)
+                    if (!activeGroupIsIntro) {
+                        const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
+                        if (groupCard) {
+                            const existingLis = groupCard.querySelectorAll('li');
+                            let isDuplicate = false;
+                            existingLis.forEach(li => {
+                                // Skip Header LIs (they don't have dataset.id)
+                                if (!li.dataset.id) return;
 
-                            const existingTitle = li.dataset.title || (li.querySelector('span:last-child') ? li.querySelector('span:last-child').innerText.split(' - ')[0].trim() : '');
-                            if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
-                                isDuplicate = true;
+                                const existingTitle = li.dataset.title || (li.querySelector('span:last-child') ? li.querySelector('span:last-child').innerText.split(' - ')[0].trim() : '');
+                                if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
+                                    isDuplicate = true;
+                                }
+                            });
+
+                            if (isDuplicate) {
+                                showNotification('Task with this name already exists in this group!', 'error');
+                                return; // Stop creation
                             }
-                        });
-
-                        if (isDuplicate) {
-                            showNotification('Task with this name already exists in this group!', 'error');
-                            return; // Stop creation
                         }
                     }
-                }
-                // -----------------------
+                    // -----------------------
 
-                // Format Date for MySQL (YYYY-MM-DD HH:MM:SS)
-                let formattedScheduledAt = null;
-                const rawDate = document.getElementById('task-schedule-input').value;
-                if (rawDate) {
-                    // rawDate is usually YYYY-MM-DDTHH:MM
-                    formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
-                }
+                    // Format Date for MySQL (YYYY-MM-DD HH:MM:SS)
+                    let formattedScheduledAt = null;
+                    const rawDate = document.getElementById('task-schedule-input').value;
+                    if (rawDate) {
+                        // rawDate is usually YYYY-MM-DDTHH:MM
+                        formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
+                    }
 
-                const newTask = await createTaskAPI({
-                    group_id: activeGroupId,
-                    title: title,
-                    description: text,
-                    priority: priority,
-                    status: 'todo',
-                    scheduled_at: formattedScheduledAt // Send formatted date
-                });
+                    const newTask = await createTaskAPI({
+                        group_id: activeGroupId,
+                        title: title,
+                        description: text,
+                        priority: priority,
+                        status: 'todo',
+                        scheduled_at: formattedScheduledAt // Send formatted date
+                    });
 
-                if (newTask) {
-                    await loadGroups(); // Reload all groups to ensure correct sorting/grouping matches Server state
-                    hideTaskModal();
+                    if (newTask) {
+                        await loadGroups(); // Reload all groups to ensure correct sorting/grouping matches Server state
+                        hideTaskModal();
+                    } else {
+                        showNotification('Failed to create task (API Error).', 'error');
+                    }
                 }
+            } catch (err) {
+                console.error(err);
+                alert("Error saving task: " + err.message);
             }
         });
 
