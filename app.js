@@ -310,25 +310,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         async function createTaskAPI(task) {
-            try {
-                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-                const response = await fetch(`${API_URL}/tasks`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(task)
-                });
-                if (!response.ok) {
-                    const errText = await response.text();
-                    throw new Error(`Server Error: ${response.status} ${errText}`);
-                }
-                return await response.json();
-            } catch (error) {
-                console.error(error);
-                return null;
+            // No try-catch here so errors propagate to the caller (save button)
+            const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+            const response = await fetch(`${API_URL}/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(task)
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Server Error: ${response.status} ${errText}`);
             }
+            return await response.json();
         }
 
         async function updateTaskAPI(id, updates) {
@@ -535,17 +531,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     const dayStr = dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit' });
 
                     if (dayStr !== lastDateStr) {
-                        const header = document.createElement('li');
-                        // Neutral Grey styling as requested
-                        header.style.backgroundColor = '#f0f0f0'; // Light grey
-                        header.style.fontWeight = 'bold';
-                        header.style.padding = '5px 10px';
-                        header.style.marginTop = '10px';
-                        header.style.borderRadius = '4px';
-                        header.style.color = '#555555'; // Dark grey text
-                        header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
-                        container.appendChild(header);
-                        lastDateStr = dayStr;
+                        if (dayStr !== lastDateStr) {
+                            const header = document.createElement('li');
+                            // Glassmorphism styling as requested
+                            header.style.backgroundColor = 'rgba(255, 255, 255, 0.4)'; // Transparent white (Glass)
+                            header.style.border = '1px solid rgba(255, 255, 255, 0.6)'; // Subtle border
+                            header.style.backdropFilter = 'blur(4px)'; // Blur effect (Glass)
+                            header.style.fontWeight = 'bold';
+                            header.style.padding = '5px 10px';
+                            header.style.marginTop = '10px';
+                            header.style.borderRadius = '8px'; // Slightly more rounded
+                            header.style.color = '#777777'; // Lighter grey text
+                            header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
+                            container.appendChild(header);
+                            lastDateStr = dayStr;
+                        }
                     }
                 }
 
