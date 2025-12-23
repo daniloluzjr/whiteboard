@@ -320,7 +320,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     body: JSON.stringify(task)
                 });
-                if (!response.ok) throw new Error('Failed to create task');
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`Server Error: ${response.status} ${errText}`);
+                }
                 return await response.json();
             } catch (error) {
                 console.error(error);
@@ -436,6 +439,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const superGroup = groups.find(g => g.name === 'Supervisors');
             const introGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
             const fixedIds = [coordGroup?.id, superGroup?.id, introGroup?.id].filter(id => id);
+
+            // [FIX] Force Colors for Fixed Groups in Memory if missing
+            if (coordGroup && !coordGroup.color) coordGroup.color = 'yellow';
+            if (superGroup && !superGroup.color) superGroup.color = 'green';
+            if (introGroup && !introGroup.color) introGroup.color = 'cyan';
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
