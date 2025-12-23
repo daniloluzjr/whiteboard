@@ -4,7 +4,7 @@
 **GitHub Repository:** [https://github.com/daniloluzjr/whiteboard](https://github.com/daniloluzjr/whiteboard)  
 **Backend API (Railway):** `https://web-production-b230e.up.railway.app`
 
-This is a real-time, collaborative whiteboard application designed for team task management. It separates "To Do" and "Done" tasks into intuitive card groups, providing a visual overview of team activity.
+This is a real-time, collaborative whiteboard application designed for team task management. It separates "To Do" and "Done" tasks into intuitive card groups, providing a visual overview of team activity, now featuring a modern **Glassmorphism** UI.
 
 ---
 
@@ -39,22 +39,23 @@ This project uses a decoupled architecture for maximum stability and free-tier o
 
 ### User System
 *   **Authentication:** Secure Login/Register with JWT tokens.
+*   **Auto-Logout:** Intelligent session handling renders a "Session Expired" alert on 403 Forbidden errors and redirects to login, preventing UI crashes.
 *   **Domain Lock:** Registration restricted to `@inicare.ie` emails.
-*   **Sessions:** 'Remember Me' uses `localStorage`, otherwise `sessionStorage`.
 *   **Real-Time Status:** Users can set their status (Available ⚡, Busy ⛔, Lunch 🍽️, etc.) visible to all colleagues in the sidebar.
 
 ### Task Management
-*   **Card Groups:** Dynamic grouping of tasks.
-    *   **Fixed Groups:** "Coordinators" and "Supervisors" are permanent (cannot be deleted).
-    *   **Dynamic Groups:** Users can create custom groups for temporary projects.
+*   **Smart Groups:**
+    *   **Fixed Groups:** "Coordinators" and "Supervisors" (Permanent).
+    *   **Introduction Group:** Specialized group with "Carer Name" fields and chronological scheduling.
 *   **Task Lifecycle:** Create -> To Do -> Done -> Delete.
-*   **Smart Deletion:**
-    *   **Any User** can delete any task (for flexibility).
-    *   **Safeguard:** A red "Permanent Action" warning modal appears before deletion.
-*   **Admin Dashboard:** (`/admin.html`)
-    *   View all registered users and tasks in a table format.
-    *   Force-delete users or tasks.
-    *   Resolve IDs to real Names for auditing.
+*   **Safeguards:** Red "Permanent Action" warning modal appears before deletion.
+*   **Admin Dashboard:** (`/admin.html`) to view/manage all data.
+
+### 🎨 UI/UX Design (New!)
+*   **Glassmorphism:** Global application of transparency (`rgba`) and blur filters (`backdrop-filter`) for a premium, modern feel.
+*   **Smart Transparency:** Group cards use tinted transparent backgrounds (e.g., Blue Tint for Coordinators) to maintain the glass effect without losing color coding.
+*   **Standardized Headers:** Date headers (e.g., "Monday 23/12") use a consistent, high-contrast semi-transparent white style across all groups for readability.
+*   **Refined Shadows & Borders:** Subtle shadows and cleaner borders for a less cluttered interface.
 
 ---
 
@@ -78,13 +79,11 @@ This project uses a decoupled architecture for maximum stability and free-tier o
     ```
 
 3.  **Run Backend:**
-    The backend connects to the live Railway DB by default (if env vars are set) or you can set up a local DB.
     ```bash
     node server.js
     ```
 
 4.  **Run Frontend:**
-    You can simply open `index.html` or `login.html` in your browser, or use a live server:
     ```bash
     npx serve .
     ```
@@ -123,7 +122,7 @@ JWT_SECRET=...
 *   **White Screen / Loading Forever:**
     *   Check the browser console (F12).
     *   API might be sleeping. Wait 10s and refresh.
-*   **"Failed to create task":**
-    *   Check if you are logged in (Session expired?). Re-login.
+*   **"Session Expired" / Redirect to Login:**
+    *   This is normal behavior if your token expires (approx 24h). Just log in again.
 *   **Changes not appearing:**
     *   Clear browser cache or check if you are editing the correct file (local vs live).
