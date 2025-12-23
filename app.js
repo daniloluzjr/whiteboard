@@ -321,6 +321,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(task)
             });
             if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    alert("Session expired. Please log in again.");
+                    window.location.href = 'login.html';
+                    return null;
+                }
                 const errText = await response.text();
                 throw new Error(`Server Error: ${response.status} ${errText}`);
             }
