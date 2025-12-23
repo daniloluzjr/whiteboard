@@ -571,6 +571,11 @@ body {
   /* More visible Blue Tint */
 }
 
+.task-card[data-group="introduction"] {
+  border-top: 5px solid #17a2b8;
+  background-color: rgba(23, 162, 184, 0.15);
+}
+
 .task-card[data-group="supervisors"] {
   border-top: 5px solid #28a745;
   background-color: rgba(40, 167, 69, 0.15);
