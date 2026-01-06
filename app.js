@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
         const sidebar = document.querySelector('.sidebar');
         const mobileOverlay = document.getElementById('mobile-overlay');
+        const logoutBtn = document.getElementById('logout-btn');
 
         if (mobileMenuBtn) {
             mobileMenuBtn.addEventListener('click', () => {
