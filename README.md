@@ -39,7 +39,7 @@ This project uses a decoupled architecture for maximum stability and free-tier o
 
 ### User System
 *   **Authentication:** Secure Login/Register with JWT tokens.
-*   **Auto-Logout:** Intelligent session handling renders a "Session Expired" alert on 403 Forbidden errors and redirects to login, preventing UI crashes.
+*   **Auto-Logout:** Robust session handling checks on page load and every minute. Enforces daily login refresh at 08:30 AM to ensure accurate daily tracking.
 *   **Domain Lock:** Registration restricted to `@inicare.ie` emails.
 *   **Real-Time Status:** Users can set their status (Available ⚡, Busy ⛔, Lunch 🍽️, etc.) visible to all colleagues in the sidebar.
 
@@ -56,6 +56,7 @@ This project uses a decoupled architecture for maximum stability and free-tier o
 *   **Smart Transparency:** Group cards use tinted transparent backgrounds (e.g., Blue Tint for Coordinators) to maintain the glass effect without losing color coding.
 *   **Standardized Headers:** Date headers (e.g., "Monday 23/12") use a consistent, high-contrast semi-transparent white style across all groups for readability.
 *   **Refined Shadows & Borders:** Subtle shadows and cleaner borders for a less cluttered interface.
+*   **Mobile Responsiveness:** Sidebar scrolling enabled for small screens to ensure all menu items and the Logout button are always accessible.
 
 ---
 

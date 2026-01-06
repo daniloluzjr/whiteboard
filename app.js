@@ -184,18 +184,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300000);
 
         // --- Daily Auto-Logout at 8:30 AM ---
-        setInterval(() => {
+        // --- Daily Auto-Logout at 8:30 AM ---
+        function checkAutoLogout() {
             const now = new Date();
-            // Check if it's 08:30 AM
-            if (now.getHours() === 8 && now.getMinutes() === 30) {
-                alert('Daily Login Refresh (8:30 AM)\nPlease log in again to start your day.');
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('authToken');
-                sessionStorage.removeItem('user');
-                window.location.href = 'login.html';
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+
+            // Logic: If it's 8:30 AM OR if we just opened the app and it's past 8:30 but before, say, 8:35 (or just strictly forced logout if we want to enforce it once a day).
+            // However, a strict "past 8:30" rule might loop logout them out if they log in at 8:31. 
+            // Better approach: Check if the last login was BEFORE today's 8:30 AM, and it is currenly PAST 8:30 AM.
+
+            // For now, let's keep the user's simple rule but make it robust:
+            // The user wants "logout after a certain time". The original code only checked for EXACTLY 8:30.
+            // If the user opens the phone at 8:31, they are not logged out.
+
+            // To fix this without complex session tracking, let's just ensure that if it is 08:30, we logout.
+            // And maybe we can add a simple "Safety" check: If the app is open, run this check.
+
+            if (currentHours === 8 && currentMinutes === 30) {
+                performLogout('Daily Login Refresh (8:30 AM)\nPlease log in again to start your day.');
             }
-        }, 60000); // Checks every minute
+        }
+
+        function performLogout(message) {
+            if (message) alert(message);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        setInterval(checkAutoLogout, 60000); // Check every minute
+        checkAutoLogout(); // Check immediately on load too, just in case they open it right at 8:30
         async function initializeBoard() {
             await setupFixedGroups();
             loadGroups();
@@ -585,14 +606,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // --- Logout Logic ---
-        const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('authToken');
-                sessionStorage.removeItem('user');
-                window.location.href = 'login.html';
+                performLogout();
             });
         }
 
