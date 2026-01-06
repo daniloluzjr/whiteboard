@@ -232,7 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Introduction', selector: '[data-group="introduction"]', color: 'cyan' },
                 { name: 'Introduction (Schedule)', selector: '[data-group="introduction"]', color: 'cyan' },
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
-                { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' }
+                { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
+                { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' }
             ];
 
             for (const def of fixedDefs) {
@@ -461,12 +462,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const coordGroup = groups.find(g => g.name === 'Coordinators');
             const superGroup = groups.find(g => g.name === 'Supervisors');
             const introGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
-            const fixedIds = [coordGroup?.id, superGroup?.id, introGroup?.id].filter(id => id);
+            const sheetsGroup = groups.find(g => g.name === 'Sheets Needed');
+            const fixedIds = [coordGroup?.id, superGroup?.id, introGroup?.id, sheetsGroup?.id].filter(id => id);
 
             // [FIX] Force Colors for Fixed Groups in Memory if missing
             if (coordGroup && !coordGroup.color) coordGroup.color = 'yellow';
             if (superGroup && !superGroup.color) superGroup.color = 'green';
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
+            if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
@@ -593,6 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!groupColor) {
                     if (group.name === 'Coordinators') groupColor = 'yellow';
                     else if (group.name === 'Supervisors') groupColor = 'green';
+                    else if (group.name === 'Sheets Needed') groupColor = 'purple';
                     else if (group.name.includes('Introduction')) groupColor = 'cyan';
                 }
 
@@ -643,7 +647,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Failsafe: Never allow delete button for fixed groups even if rendered dynamically
             let isProtected = group.name.toLowerCase().includes('introduction') ||
                 group.name === 'Coordinators' ||
-                group.name === 'Supervisors';
+                group.name === 'Supervisors' ||
+                group.name === 'Sheets Needed';
 
             const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
             const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';

@@ -584,6 +584,12 @@ body {
   /* More visible Green Tint */
 }
 
+.task-card[data-group="sheets-needed"] {
+  border-top: 5px solid #6f42c1;
+  background-color: rgba(111, 66, 193, 0.15);
+  /* Purple Tint */
+}
+
 /* Dynamic Group Colors - Tinted Glass */
 .task-card[data-color="purple"] {
   border-top: 5px solid #6f42c1;

@@ -45,7 +45,7 @@ This project uses a decoupled architecture for maximum stability and free-tier o
 
 ### Task Management
 *   **Smart Groups:**
-    *   **Fixed Groups:** "Coordinators" and "Supervisors" (Permanent).
+    *   **Fixed Groups:** "Coordinators", "Supervisors", and "Sheets Needed" (Permanent).
     *   **Introduction Group:** Specialized group with "Carer Name" fields and chronological scheduling.
 *   **Task Lifecycle:** Create -> To Do -> Done -> Delete.
 *   **Safeguards:** Red "Permanent Action" warning modal appears before deletion.
