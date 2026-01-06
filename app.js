@@ -177,6 +177,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Initialization ---
         initializeBoard();
 
+        // --- Fix for Navigation/Cache Restoration ---
+        // Ensures data reloads when user navigates back to the page (handling bfcache)
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                console.log("Page restored from cache. Reloading data...");
+                loadGroups();
+                loadUsers();
+            }
+        });
+
         // Auto-Refresh every 5 minutes (300,000 ms)
         setInterval(() => {
             console.log("Auto-refreshing tasks...");
