@@ -56,7 +56,7 @@ This project uses a decoupled architecture for maximum stability and free-tier o
 *   **Smart Transparency:** Group cards use tinted transparent backgrounds (e.g., Blue Tint for Coordinators) to maintain the glass effect without losing color coding.
 *   **Standardized Headers:** Date headers (e.g., "Monday 23/12") use a consistent, high-contrast semi-transparent white style across all groups for readability.
 *   **Refined Shadows & Borders:** Subtle shadows and cleaner borders for a less cluttered interface.
-*   **Mobile Responsiveness:** Sidebar scrolling enabled for small screens to ensure all menu items and the Logout button are always accessible.
+*   **Mobile Responsiveness:** Sidebar scrolling enabled for small screens to ensure all menu items and the Logout button are always accessible. Optimized for mobile with a compact menu width (65%), smaller fonts, and scaled-down interactive elements (buttons/inputs) for a delicate, native-app feel.
 
 ---
 
