@@ -568,7 +568,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // If invalid date in 'created_at' (shouldn't happen), treat as no header?
 
                 if (isValidDate) {
-                    const dayStr = dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit' });
+                    const year = dateObj.getFullYear();
+                    const day = String(dateObj.getDate()).padStart(2, '0');
+                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const weekday = dateObj.toLocaleDateString('en-GB', { weekday: 'long' });
+
+                    // "Year in front" format: YYYY - Weekday DD/MM
+                    const dayStr = `${year} - ${weekday} ${day}/${month}`;
 
                     if (dayStr !== lastDateStr) {
                         const header = document.createElement('li');
@@ -701,7 +707,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check for intro mode (Vertical layout)
             if (isIntroduction) {
                 titleContainer.style.cssText = "display:flex; flex-direction:column; width:100%;";
-
                 // Top Row (Time + Client)
                 const topRow = document.createElement('div');
                 topRow.style.cssText = "display:flex; align-items:center; font-size:1.1em; margin-bottom:2px;";
