@@ -568,13 +568,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // If invalid date in 'created_at' (shouldn't happen), treat as no header?
 
                 if (isValidDate) {
-                    const year = dateObj.getFullYear();
+                    const year = String(dateObj.getFullYear()).slice(-2); // Get last 2 digits
                     const day = String(dateObj.getDate()).padStart(2, '0');
                     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
                     const weekday = dateObj.toLocaleDateString('en-GB', { weekday: 'long' });
 
-                    // "Year in front" format: YYYY - Weekday DD/MM
-                    const dayStr = `${year} - ${weekday} ${day}/${month}`;
+                    // Requested format: DD/MM/YY - Weekday
+                    const dayStr = `${day}/${month}/${year} - ${weekday}`;
 
                     if (dayStr !== lastDateStr) {
                         const header = document.createElement('li');
