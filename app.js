@@ -683,12 +683,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Failsafe: Never allow delete button for fixed groups even if rendered dynamically
             let isProtected = group.name.toLowerCase().includes('introduction') ||
                 group.name === 'Coordinators' ||
-                let isProtected = group.name.toLowerCase().includes('introduction') ||
-                    group.name === 'Coordinators' ||
-                    group.name === 'Supervisors' ||
-                    group.name === 'Sheets Needed' ||
-                    group.name === 'Carer Sick' ||
-                    group.name === 'Returned Carers';
+                group.name === 'Supervisors' ||
+                group.name === 'Sheets Needed';
 
             const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
             const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
