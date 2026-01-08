@@ -590,6 +590,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         const hardcodedCards = document.querySelectorAll(selector);
                         hardcodedCards.forEach(card => card.dataset.group = group.id);
 
+                    } else if (lowerName === 'carers to come in' || lowerName === 'done - carers to come in') {
+                        console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
+                        renderFixedGroupTasks(group);
+                        const hardcodedCards = document.querySelectorAll('[data-group="carers-come-in"]');
+                        hardcodedCards.forEach(card => card.dataset.group = group.id);
+
                     } else if (
                         group.name === 'Carer Sick' ||
                         group.name === 'Returned Carers' ||
@@ -926,7 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // New: Check if group supports schedule (Intro, Sick Carers, Admitted to Hospital)
-                    if (activeGroupIsIntro || groupTitle.includes('sick carers') || groupTitle.includes('admitted to hospital')) {
+                    if (activeGroupIsIntro || groupTitle.includes('sick carers') || groupTitle.includes('admitted to hospital') || groupTitle.includes('carers to come in')) {
                         activeGroupHasSchedule = true;
                     } else {
                         activeGroupHasSchedule = false;
