@@ -192,10 +192,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Auto-Refresh every 5 seconds (5,000 ms) for near real-time updates
         setInterval(() => {
+            // [FIX] Checking if user is currently renaming a group
+            // If there is an input field inside a card-header, we skip the refresh to avoid overwriting their typing.
+            const isRenaming = document.querySelector('.card-header input') !== null;
+            if (isRenaming) {
+                // console.log("Skipping refresh due to active rename...");
+                return;
+            }
+
             // console.log("Auto-refreshing tasks..."); // Less noise in console
             loadGroups();
             loadUsers();
-        }, 5000);
+        }, 600000); // 10 Minutes (600000ms)
 
         // --- Daily Auto-Logout at 8:30 AM ---
         // --- Daily Auto-Logout at 8:30 AM ---
