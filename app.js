@@ -176,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let activeGroupId = null;
         let activeGroupIsIntro = false; // Flag to track if we are in intro mode
         let activeGroupHasSchedule = false; // Flag for groups that support scheduling
+        let activeGroupType = 'standard'; // 'standard', 'intro', 'compact'
         let currentTaskData = null;
 
         // --- Initialization ---
@@ -258,6 +259,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 manualSickGroup.name = 'Sick Carers';
             }
 
+            // MIGRATION 3: Rename "Sheets Needed" to "Log Sheets Needed"
+            const sheetsGroup = groups.find(g => g.name === 'Sheets Needed');
+            if (sheetsGroup) {
+                console.log("Renaming 'Sheets Needed' -> 'Log Sheets Needed'");
+                await renameGroupAPI(sheetsGroup.id, 'Log Sheets Needed');
+                sheetsGroup.name = 'Log Sheets Needed';
+            }
+
             // MIGRATION 2: Merge "Sick Carers Returned" (or Returned Sick Carers) INTO "Sick Carers"
             // We want ONE group. If the secondary group exists, move tasks and delete it.
             const secondaryGroup = groups.find(g => g.name === 'Sick Carers Returned') ||
@@ -289,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Introduction (Schedule)', selector: '[data-group="introduction"]', color: 'cyan' },
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
-                { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
+                { name: 'Log Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
                 { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' },
                 { name: 'Carers to come in', selector: '[data-group="carers-come-in"]', color: 'pink' }
             ];
@@ -523,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const coordGroup = groups.find(g => g.name === 'Coordinators');
             const superGroup = groups.find(g => g.name === 'Supervisors');
             const introGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
-            const sheetsGroup = groups.find(g => g.name === 'Sheets Needed');
+            const sheetsGroup = groups.find(g => g.name === 'Log Sheets Needed') || groups.find(g => g.name === 'Sheets Needed');
             const sickGroup = groups.find(g => g.name === 'Sick Carers');
             // Try strict match first, then case-insensitive to catch user variations
             const sickReturnedGroup = groups.find(g => g.name === 'Returned Sick Carers') ||
@@ -634,11 +643,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Re-use generic with specific settings for Intro (Schedule ASC, Vertical Layout)
             // Use 'cyan' as default for Intro if color isn't explicitly passed (or look it up)
             // Ideally we should pass group color, but Intro is always cyan/blue-ish.
-            renderGroupedList(container, tasks, 'scheduled_at', 'asc', true, 'cyan');
+            renderGroupedList(container, tasks, 'scheduled_at', 'asc', 'intro', 'cyan');
         }
 
         // Generic Renderer with Date Headers
-        function renderGroupedList(container, tasks, dateField, sortOrder = 'desc', isIntroduction = false, groupColor = 'cyan') {
+        function renderGroupedList(container, tasks, dateField, sortOrder = 'desc', renderMode = 'standard', groupColor = 'cyan') {
             container.innerHTML = '';
 
             const theme = colorThemeMap[groupColor] || colorThemeMap['cyan'];
@@ -689,7 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                const taskEl = createTaskElement(task, isIntroduction);
+                const taskEl = createTaskElement(task, renderMode);
                 container.appendChild(taskEl);
             });
         }
@@ -708,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!groupColor) {
                     if (group.name === 'Coordinators') groupColor = 'yellow';
                     else if (group.name === 'Supervisors') groupColor = 'green';
-                    else if (group.name === 'Sheets Needed') groupColor = 'purple';
+                    else if (group.name === 'Log Sheets Needed' || group.name === 'Sheets Needed') groupColor = 'purple';
                     else if (group.name.includes('Introduction')) groupColor = 'cyan';
                     else if (group.name === 'Sick Carers') groupColor = 'orange'; // Ensure Sick Carers gets orange
                     else if (group.name === 'Carers to come in') groupColor = 'pink';
@@ -723,17 +732,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isScheduleGroup) {
                     // Schedule Mode: Sort by Scheduled Date ASC, Use Vertical Layout
                     const todoTasks = group.tasks.filter(t => t.status !== 'done');
-                    renderGroupedList(todoContainer, todoTasks, 'scheduled_at', 'asc', true, groupColor);
+
+                    // Determine render mode
+                    let renderMode = 'standard';
+                    if (group.name.includes('Introduction')) renderMode = 'intro';
+                    else if (group.name === 'Coordinators' || group.name.includes('Admitted to Hospital') || group.name === 'Sick Carers') renderMode = 'compact';
+                    // 'Carers to come in' remains standard for now unless requested otherwise, or maybe compact too? 
+                    // User only specified Hospital and Sick Carers for now.
+
+                    renderGroupedList(todoContainer, todoTasks, 'scheduled_at', 'asc', renderMode, groupColor);
 
                     const doneTasks = group.tasks.filter(t => t.status === 'done');
-                    renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'asc', true, groupColor);
+                    renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'asc', renderMode, groupColor);
                 } else {
                     // Standard Mode: Sort by Created/Completed Date DESC
                     const todoTasks = group.tasks.filter(t => t.status !== 'done');
-                    renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false, groupColor);
+                    renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', 'standard', groupColor);
 
                     const doneTasks = group.tasks.filter(t => t.status === 'done');
-                    renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false, groupColor);
+                    renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', 'standard', groupColor);
                 }
             }
         }
@@ -756,11 +773,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // ToDo: Group by Created At (Newest First)
             const todoTasks = group.tasks.filter(t => t.status !== 'done');
-            renderGroupedList(todoList, todoTasks, 'created_at', 'desc', false, group.color);
+            renderGroupedList(todoList, todoTasks, 'created_at', 'desc', 'standard', group.color);
 
             // Done: Group by Completed At (Newest First)
             const doneTasks = group.tasks.filter(t => t.status === 'done');
-            renderGroupedList(doneList, doneTasks, 'completed_at', 'desc', false, group.color);
+            renderGroupedList(doneList, doneTasks, 'completed_at', 'desc', 'standard', group.color);
         }
 
         function createCardElement(group, type) {
@@ -776,6 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let isProtected = group.name.toLowerCase().includes('introduction') ||
                 group.name === 'Coordinators' ||
                 group.name === 'Supervisors' ||
+                group.name === 'Log Sheets Needed' ||
                 group.name === 'Sheets Needed' ||
                 group.name === 'Sick Carers' ||
                 group.name === 'Sick Carers Returned' ||
@@ -795,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return div;
         }
 
-        function createTaskElement(task, isIntroduction = false) {
+        function createTaskElement(task, renderMode = 'standard') {
             const li = document.createElement('li');
             li.dataset.id = task.id;
             li.dataset.text = task.description || '';
@@ -819,8 +837,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Title Container
             const titleContainer = document.createElement('div');
-            // Check for intro mode (Vertical layout)
-            if (isIntroduction) {
+            // Check for intro/compact mode (Vertical layout)
+            if (renderMode === 'intro' || renderMode === 'compact') {
                 titleContainer.style.cssText = "display:flex; flex-direction:column; width:100%;";
                 // Top Row (Time + Client)
                 const topRow = document.createElement('div');
@@ -841,10 +859,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 titleText.textContent = `${timeStr} - ${task.title}`; // Safe text assignment
                 topRow.appendChild(titleText);
 
-                // Bottom Row (Caregiver)
+                // Bottom Row (Caregiver / Description)
                 const bottomRow = document.createElement('span');
                 bottomRow.style.cssText = "font-size:0.9em; color:#555; margin-left:22px;";
-                bottomRow.textContent = `Carer Name: ${task.description}`; // Safe text assignment
+
+                if (renderMode === 'intro') {
+                    bottomRow.textContent = `Carer Name: ${task.description}`;
+                } else if (renderMode === 'compact') {
+                    // Logic: Truncate description to 3-4 words + "..."
+                    // Also NO "Carer Name:" prefix
+                    let descObj = task.description || '';
+                    if (descObj) {
+                        const words = descObj.split(/\s+/); // Split by whitespace
+                        if (words.length > 4) {
+                            bottomRow.textContent = words.slice(0, 4).join(' ') + '...';
+                        } else {
+                            bottomRow.textContent = descObj;
+                        }
+                    } else {
+                        bottomRow.textContent = '';
+                    }
+                }
 
                 titleContainer.appendChild(topRow);
                 titleContainer.appendChild(bottomRow);
@@ -919,7 +954,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const card = target.closest('.task-card');
                 if (card) {
                     activeGroupId = card.dataset.group;
-                    activeGroupId = card.dataset.group;
                     // Check if it's introduction group
                     // Robust check: Check name in H3 or data-group match
                     // Check if it's introduction group or other schedule groups
@@ -927,8 +961,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (groupTitle.includes('introduction')) {
                         activeGroupIsIntro = true;
+                        activeGroupType = 'intro';
+                    } else if (groupTitle.includes('admitted to hospital')) {
+                        activeGroupIsIntro = false;
+                        activeGroupType = 'compact'; // Hospital
+                    } else if (groupTitle.includes('sick carers')) {
+                        activeGroupIsIntro = false;
+                        activeGroupType = 'compact'; // Sick Carers
                     } else {
                         activeGroupIsIntro = false;
+                        activeGroupType = 'standard';
                     }
 
                     // New: Check if group supports schedule (Intro, Sick Carers, Admitted to Hospital)
@@ -1082,9 +1124,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     scheduleInput.value = ''; // Reset
                     scheduleInput.readOnly = false; // Ensure editable!
 
-                    if (activeGroupIsIntro) {
+                    if (activeGroupType === 'intro') {
                         taskTitleInput.placeholder = "Client Name";
                         taskTextInput.placeholder = "Carer Name";
+                    } else if (activeGroupType === 'compact') {
+                        // Check specifically which compact type (Hospital or Sick)
+                        // We can infer from activeGroupId lookup or just check activeGroupType + some context?
+                        // Current logic: 'compact' covers both. But they have different placeholders.
+                        // Let's re-check the group title logic or store a subtype?
+                        // Or just check activeGroupId again?
+
+                        // Let's use the DOM to be safe since we are in the modal setup phase
+                        // Actually better to refine activeGroupType logic or specific flags.
+                        // Let's check the container triggers or store a specific label.
+                        // Or hack: check activeGroupHasSchedule and if it's NOT intro...
+
+                        // Wait, we defined:
+                        // Hospital -> "Client Name"
+                        // Sick Carers -> "Carer Name"
+
+                        // We need to know WHICH compact one it is.
+                        // Let's use the activeGroupId to find the group name from DOM?
+                        const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"]`);
+                        const groupName = groupCard ? groupCard.querySelector('h3').innerText.toLowerCase() : '';
+
+                        if (groupName.includes('admitted to hospital')) {
+                            taskTitleInput.placeholder = "Client Name";
+                            taskTextInput.placeholder = "Description";
+                        } else if (groupName.includes('sick carers')) {
+                            taskTitleInput.placeholder = "Carer Name";
+                            taskTextInput.placeholder = "Description";
+                        } else {
+                            taskTitleInput.placeholder = "Task Title";
+                            taskTextInput.placeholder = "Task description...";
+                        }
+
                     } else {
                         // Default placeholders for other schedule groups
                         taskTitleInput.placeholder = "Task Title";
