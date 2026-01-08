@@ -249,12 +249,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 manualSickGroup.name = 'Sick Carers';
             }
 
-            // MIGRATION 2: Rename "Sick Carers Returned" -> "Returned Sick Carers" (User Request)
-            const oldReturnedGroup = groups.find(g => g.name === 'Sick Carers Returned');
-            if (oldReturnedGroup) {
-                console.log("Renaming 'Sick Carers Returned' -> 'Returned Sick Carers'");
-                await renameGroupAPI(oldReturnedGroup.id, 'Returned Sick Carers');
-                oldReturnedGroup.name = 'Returned Sick Carers';
+            // MIGRATION 2: Merge "Sick Carers Returned" (or Returned Sick Carers) INTO "Sick Carers"
+            // We want ONE group. If the secondary group exists, move tasks and delete it.
+            const secondaryGroup = groups.find(g => g.name === 'Sick Carers Returned') ||
+                groups.find(g => g.name === 'Returned Sick Carers');
+
+            let mainSickGroup = groups.find(g => g.name === 'Sick Carers');
+
+            // If we have secondary but no main, rename secondary to main
+            if (secondaryGroup && !mainSickGroup) {
+                await renameGroupAPI(secondaryGroup.id, 'Sick Carers');
+                mainSickGroup = secondaryGroup; // It is now the main group
+            }
+            // If we have both, move tasks from secondary to main, then delete secondary
+            else if (secondaryGroup && mainSickGroup) {
+                console.log("Merging Sick groups...");
+                // Note: We need to move tasks. Since we don't have a bulk move API easily here, 
+                // we will rely on the user manually moving them IF we can't do it.
+                // But wait, we can just loop update.
+                if (secondaryGroup.tasks && secondaryGroup.tasks.length > 0) {
+                    for (const task of secondaryGroup.tasks) {
+                        await updateTaskAPI(task.id, { group_id: mainSickGroup.id });
+                    }
+                }
+                await deleteGroupAPI(secondaryGroup.id);
             }
 
             const fixedDefs = [
@@ -263,8 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
                 { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
-                { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'cyan' },
-                { name: 'Returned Sick Carers', selector: '[data-group="sick-carers-returned"]', color: 'cyan' }
+                { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'cyan' }
             ];
 
             for (const def of fixedDefs) {
@@ -272,6 +289,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 let dbGroup = groups.find(g => g.name === def.name);
                 if (def.name.startsWith('Introduction')) {
                     dbGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
+                } else if (def.name === 'Sick Carers') {
+                    // Refresh search in case we just created/renamed it above
+                    dbGroup = groups.find(g => g.name === 'Sick Carers');
                 }
 
                 // If not found, create them to avoid 500 errors.
