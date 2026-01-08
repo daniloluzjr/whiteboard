@@ -2,7 +2,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration ---
     // Update this URL if your backend is hosted elsewhere
+    // If you are using Vercel, this won't work for WebSocket (requires serverless solution like Pusher). 
+    // But since you have a Node server (Railway/Heroku/Render), this is fine.
     const API_URL = 'https://web-production-b230e.up.railway.app/api';
+    // const API_URL = 'http://localhost:3001/api'; // Use this for local testing
 
     // --- PAGE ROUTER ---
     const isWhiteboard = document.querySelector('.tasks-grid');
@@ -10,6 +13,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- WHITEBOARD LOGIC ---
     if (isWhiteboard) {
+        // --- Socket.io Real-Time Updates ---
+        // Connect to the backend
+        // If API_URL is different domain, pass it to io(). If same origin, just io() works but usually safer to specify if separated.
+        // Since we have a specific API_URL defined, let's extract the origin.
+
+        let socket;
+        try {
+            // Basic connection usage
+            // Note: Ensure the version of client (CDN) matches server reasonably well.
+            // We used CDN 4.7.2, server we just installed (latest). Should be compatible.
+            // If API_URL contains '/api', remove it for the socket connection url usually, 
+            // but socket.io handles paths. Usually it connects to root.
+
+            const socketUrl = 'https://web-production-b230e.up.railway.app';
+            // const socketUrl = 'http://localhost:3001';
+
+            socket = io(socketUrl);
+
+            socket.on('connect', () => {
+                console.log('Connected to Real-Time Server:', socket.id);
+            });
+
+            socket.on('board_update', () => {
+                console.log('Received real-time update. Refreshing board...');
+                loadGroups();
+                loadUsers();
+                showNotification('Board updated', 'info');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from Real-Time Server');
+            });
+        } catch (e) {
+            console.error("Socket.io connection failed", e);
+        }
+
         // --- State & DOM Elements (Whiteboard) ---
         const tasksGrid = document.querySelector('.tasks-grid');
         const dynamicCardColors = ['purple', 'orange', 'cyan', 'pink'];
@@ -849,6 +888,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tasksGrid.addEventListener('dblclick', (e) => {
             const target = e.target;
             if (target.tagName === 'H3') {
+                // Protect fixed groups from renaming (e.g. Coordinators with custom headers)
+                if (target.closest('.non-deletable')) return;
+
                 const cardHeader = target.parentElement;
                 const currentTitle = target.textContent;
                 const prefix = currentTitle.startsWith('To Do') ? 'To Do - ' : 'Tasks done - ';
@@ -1184,20 +1226,42 @@ document.addEventListener('DOMContentLoaded', () => {
         filterInput.addEventListener('input', () => {
             const filterText = filterInput.value.toLowerCase().trim();
             const allCards = document.querySelectorAll('.task-card');
-            const groupsToShow = new Set();
 
             allCards.forEach(card => {
-                const title = card.querySelector('h3').textContent.toLowerCase();
-                if (title.includes(filterText)) {
-                    groupsToShow.add(card.dataset.group);
-                }
-            });
+                const cardTitle = card.querySelector('h3').textContent.toLowerCase();
+                const tasks = card.querySelectorAll('li');
+                let hasVisibleTasks = false;
 
-            allCards.forEach(card => {
-                if (groupsToShow.has(card.dataset.group)) {
+                // If the group title matches, we will show all tasks in it (optional preference)
+                const groupMatches = cardTitle.includes(filterText);
+
+                tasks.forEach(task => {
+                    const text = task.innerText.toLowerCase();
+                    const isHeader = !task.dataset.id; // Heuristic: headers don't have IDs
+
+                    // Logic: Show if group matches, OR text matches, OR filter is empty
+                    // Special case: For headers, maybe keep them if we want? 
+                    // For now, strict search: 
+
+                    if (filterText === '' || groupMatches || text.includes(filterText)) {
+                        task.style.display = '';
+                        // Only count as "visible task" if it's not just a header (unless header matched)
+                        if (!isHeader || text.includes(filterText)) {
+                            hasVisibleTasks = true;
+                        }
+                        // If it's a header and we are just showing it because group matched, that's fine.
+                        if (isHeader && groupMatches) hasVisibleTasks = true;
+                    } else {
+                        task.style.display = 'none';
+                    }
+                });
+
+                // Always show card if filter is empty (restore state)
+                if (filterText === '') {
                     card.style.display = '';
                 } else {
-                    card.style.display = 'none';
+                    // Show card only if it has meaningful visible content
+                    card.style.display = hasVisibleTasks ? '' : 'none';
                 }
             });
         });

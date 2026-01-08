@@ -5,15 +5,39 @@ const mysql = require('mysql2/promise');
 
 require('dotenv').config();
 
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
+const server = http.createServer(app);
+
+// CORS for Socket.io
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Allow all for now (dev/prod mixed)
+        methods: ["GET", "POST", "PATCH", "DELETE"]
+    }
+});
+
 const port = process.env.PORT || 3001;
 
-// CORS Configuration
-// Allow all origins for now to support Vercel/Localhost easy testing.
-// In production, you might want to restrict this to 'https://ourwhiteboard.vercel.app'
+// CORS Configuration (Express)
 app.use(cors());
 
 app.use(express.json());
+
+// --- Socket.io Connection ---
+io.on('connection', (socket) => {
+    console.log('A user connected');
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
+});
+
+// Helper to emit update
+function emitUpdate() {
+    io.emit('board_update');
+}
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -113,6 +137,7 @@ app.patch('/api/users/status', authenticateToken, async (req, res) => {
     const { status } = req.body;
     try {
         await pool.query('UPDATE users SET status = ? WHERE id = ?', [status, req.user.id]);
+        emitUpdate(); // Emit update
         res.json({ message: 'Status updated' });
     } catch (error) {
         console.error(error);
@@ -131,6 +156,7 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
 
     try {
         await pool.query('DELETE FROM users WHERE id = ?', [id]);
+        emitUpdate(); // Emit update
         res.json({ message: 'User deleted' });
     } catch (error) {
         console.error(error);
@@ -227,6 +253,7 @@ app.post('/api/groups', authenticateToken, async (req, res) => {
     const { name, color } = req.body;
     try {
         const [result] = await pool.query('INSERT INTO task_groups (name, color) VALUES (?, ?)', [name, color]);
+        emitUpdate(); // Emit update
         res.status(201).json({ id: result.insertId, name, color, tasks: [] });
     } catch (error) {
         console.error(error);
@@ -240,6 +267,7 @@ app.delete('/api/groups/:id', authenticateToken, async (req, res) => {
     try {
         await pool.query('DELETE FROM tasks WHERE group_id = ?', [id]);
         await pool.query('DELETE FROM task_groups WHERE id = ?', [id]);
+        emitUpdate(); // Emit update
         res.json({ message: 'Group deleted' });
     } catch (error) {
         console.error(error);
@@ -253,6 +281,7 @@ app.patch('/api/groups/:id', authenticateToken, async (req, res) => {
     const { name } = req.body;
     try {
         await pool.query('UPDATE task_groups SET name = ? WHERE id = ?', [name, id]);
+        emitUpdate(); // Emit update
         res.json({ message: 'Group updated' });
     } catch (error) {
         console.error(error);
@@ -285,6 +314,7 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
             scheduled_at: scheduledDate,
             created_at: new Date()
         };
+        emitUpdate(); // Emit update
         res.status(201).json(newTask);
     } catch (error) {
         console.error(error);
@@ -332,6 +362,7 @@ app.patch('/api/tasks/:id', authenticateToken, async (req, res) => {
 
     try {
         await pool.query(query, values);
+        emitUpdate(); // Emit update
         res.json({ message: 'Task updated successfully' });
     } catch (error) {
         console.error(error);
@@ -344,6 +375,7 @@ app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
         await pool.query('DELETE FROM tasks WHERE id = ?', [id]);
+        emitUpdate(); // Emit update
         res.json({ message: 'Task deleted successfully' });
     } catch (error) {
         console.error(error);
@@ -359,6 +391,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(port, () => {
+// Start Server with Socket.io (server.listen instead of app.listen)
+server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });

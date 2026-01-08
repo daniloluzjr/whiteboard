@@ -68,7 +68,7 @@
                 <!-- Permanent task cards -->
                 <div class="task-card non-deletable" data-group="coordinators" data-type="todo">
                     <div class="card-header">
-                        <h3>To Do - Coordinators</h3>
+                        <h3>Admitted to Hospital</h3>
                         <button class="add-task-item-btn">+</button>
                     </div>
                     <ul><!-- Tasks will be added here dynamically --></ul>
@@ -76,7 +76,7 @@
 
                 <div class="task-card non-deletable" data-group="coordinators" data-type="done">
                     <div class="card-header">
-                        <h3>Tasks done - Coordinators</h3>
+                        <h3>Returned from Hospital</h3>
                     </div>
                     <ul><!-- Completed tasks will go here --></ul>
                 </div>
@@ -187,6 +187,7 @@
     <!-- Container for Toast Notifications -->
     <div id="notification-container" class="notification-container"></div>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="app.js"></script>
 </body>
 
