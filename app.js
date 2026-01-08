@@ -248,8 +248,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
                 { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
                 { name: 'Carer Sick', selector: '[data-group="carer-sick"]', color: 'orange' },
-                { name: 'Cuidadores que retornaram', selector: '[data-group="carers-returned"]', color: 'cyan' }
+                { name: 'Returned Carers', selector: '[data-group="returned-carers"]', color: 'cyan' }
             ];
+
+            // Cleanup: Delete the accidental Portuguese group if it exists
+            const accidentalGroup = groups.find(g => g.name === 'Cuidadores que retornaram');
+            if (accidentalGroup) {
+                console.log("Removing accidental Portuguese group...");
+                await deleteGroupAPI(accidentalGroup.id);
+                // Refresh groups list after delete
+                groups.splice(groups.indexOf(accidentalGroup), 1);
+            }
 
             for (const def of fixedDefs) {
                 // Approximate match for Intro to avoid creating duplicates if one exists
@@ -274,9 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             card.classList.remove('hidden');
                         });
                     } else {
-                        // Fallback: If for some reason the hardcoded card is missing (or deleted), reload?
-                        // For Introduction, if manual card is missing or dynamic one took over, we must fix standard render.
-                        console.warn(`Hardcoded card for ${def.name} not found, checking if dynamic one exists.`);
+                        // Fallback: This is expected if HTML is missing. We will warn.
+                        console.warn(`Hardcoded card for ${def.name} not found.`);
                     }
                 }
             }
@@ -474,17 +482,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const groups = await fetchGroups();
 
             // Identify Fixed Group IDs
+            // Identify Fixed Group IDs
             const coordGroup = groups.find(g => g.name === 'Coordinators');
             const superGroup = groups.find(g => g.name === 'Supervisors');
             const introGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
             const sheetsGroup = groups.find(g => g.name === 'Sheets Needed');
-            const fixedIds = [coordGroup?.id, superGroup?.id, introGroup?.id, sheetsGroup?.id].filter(id => id);
+            const sickGroup = groups.find(g => g.name === 'Carer Sick');
+            const returnedGroup = groups.find(g => g.name === 'Returned Carers'); // English Name
+
+            const fixedIds = [
+                coordGroup?.id,
+                superGroup?.id,
+                introGroup?.id,
+                sheetsGroup?.id,
+                sickGroup?.id,
+                returnedGroup?.id
+            ].filter(id => id);
 
             // [FIX] Force Colors for Fixed Groups in Memory if missing
             if (coordGroup && !coordGroup.color) coordGroup.color = 'yellow';
             if (superGroup && !superGroup.color) superGroup.color = 'green';
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
+            if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
+            if (returnedGroup && !returnedGroup.color) returnedGroup.color = 'cyan';
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
@@ -668,10 +689,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Failsafe: Never allow delete button for fixed groups even if rendered dynamically
             let isProtected = group.name.toLowerCase().includes('introduction') ||
                 group.name === 'Coordinators' ||
-                group.name === 'Supervisors' ||
-                group.name === 'Sheets Needed' ||
-                group.name === 'Carer Sick' ||
-                group.name === 'Cuidadores que retornaram';
+                let isProtected = group.name.toLowerCase().includes('introduction') ||
+                    group.name === 'Coordinators' ||
+                    group.name === 'Supervisors' ||
+                    group.name === 'Sheets Needed' ||
+                    group.name === 'Carer Sick' ||
+                    group.name === 'Returned Carers';
 
             const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
             const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
