@@ -13,42 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- WHITEBOARD LOGIC ---
     if (isWhiteboard) {
-        // --- Socket.io Real-Time Updates ---
-        // Connect to the backend
-        // If API_URL is different domain, pass it to io(). If same origin, just io() works but usually safer to specify if separated.
-        // Since we have a specific API_URL defined, let's extract the origin.
-
-        let socket;
-        try {
-            // Basic connection usage
-            // Note: Ensure the version of client (CDN) matches server reasonably well.
-            // We used CDN 4.7.2, server we just installed (latest). Should be compatible.
-            // If API_URL contains '/api', remove it for the socket connection url usually, 
-            // but socket.io handles paths. Usually it connects to root.
-
-            const socketUrl = 'https://web-production-b230e.up.railway.app';
-            // const socketUrl = 'http://localhost:3001';
-
-            socket = io(socketUrl);
-
-            socket.on('connect', () => {
-                console.log('Connected to Real-Time Server:', socket.id);
-            });
-
-            socket.on('board_update', () => {
-                console.log('Received real-time update. Refreshing board...');
-                loadGroups();
-                loadUsers();
-                showNotification('Board updated', 'info');
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Disconnected from Real-Time Server');
-            });
-        } catch (e) {
-            console.error("Socket.io connection failed", e);
-        }
-
         // --- State & DOM Elements (Whiteboard) ---
         const tasksGrid = document.querySelector('.tasks-grid');
         const dynamicCardColors = ['purple', 'orange', 'cyan', 'pink'];
@@ -226,12 +190,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Auto-Refresh every 5 minutes (300,000 ms)
+        // Auto-Refresh every 5 seconds (5,000 ms) for near real-time updates
         setInterval(() => {
-            console.log("Auto-refreshing tasks...");
+            // console.log("Auto-refreshing tasks..."); // Less noise in console
             loadGroups();
-            loadUsers(); // NEW: Refresh users
-        }, 300000);
+            loadUsers();
+        }, 5000);
 
         // --- Daily Auto-Logout at 8:30 AM ---
         // --- Daily Auto-Logout at 8:30 AM ---

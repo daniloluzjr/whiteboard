@@ -44,7 +44,7 @@ This project uses a decoupled architecture for maximum stability and free-tier o
 *   **Real-Time Status:** Users can set their status (Available ⚡, Busy ⛔, Lunch 🍽️, etc.) visible to all colleagues in the sidebar.
 
 ### Task Management
-*   **Real-Time Updates:** Powered by **Socket.io**, the board updates instantly for all connected users whenever tasks are created, edited, or deleted. No refresh required.
+*   **Auto-Refresh:** The board automatically updates every 5 seconds to ensure all users see the latest changes without manual refreshing.
 *   **Smart Groups:**
     *   **Fixed Groups:** "Admitted to Hospital", "Returned from Hospital", "Supervisors", and "Sheets Needed" (Permanent).
     *   **Introduction Group:** Specialized group with "Carer Name" fields and chronological scheduling.
