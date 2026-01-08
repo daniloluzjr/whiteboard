@@ -246,7 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Introduction (Schedule)', selector: '[data-group="introduction"]', color: 'cyan' },
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
-                { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' }
+                { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
+                { name: 'Carer Sick', selector: '[data-group="carer-sick"]', color: 'orange' },
+                { name: 'Cuidadores que retornaram', selector: '[data-group="carers-returned"]', color: 'cyan' }
             ];
 
             for (const def of fixedDefs) {
@@ -667,7 +669,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let isProtected = group.name.toLowerCase().includes('introduction') ||
                 group.name === 'Coordinators' ||
                 group.name === 'Supervisors' ||
-                group.name === 'Sheets Needed';
+                group.name === 'Sheets Needed' ||
+                group.name === 'Carer Sick' ||
+                group.name === 'Cuidadores que retornaram';
 
             const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
             const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
@@ -943,14 +947,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 taskTextInput.readOnly = false;
 
                 saveTaskBtn.classList.remove('hidden');
+                saveTaskBtn.textContent = 'Save Task'; // Ensure text is reset
                 completeTaskBtn.classList.add('hidden');
                 taskDates.classList.add('hidden');
                 // Hide solution in create mode
                 document.getElementById('solution-label').classList.add('hidden');
                 document.getElementById('task-solution-input').classList.add('hidden');
                 document.getElementById('task-solution-input').value = '';
-                document.getElementById('task-solution-input').value = '';
-                document.getElementById('delete-task-btn').classList.add('hidden'); // Fix: Ensure delete button is hidden
+                document.getElementById('delete-task-btn').classList.add('hidden');
 
                 // Handle Schedule Input
                 const scheduleContainer = document.getElementById('schedule-container');
@@ -965,7 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     taskTextInput.placeholder = "Carer Name";
                 } else {
                     scheduleContainer.classList.add('hidden');
-                    taskTextInput.classList.remove('hidden'); // Fix: Show for everyone
+                    taskTextInput.classList.remove('hidden');
                     taskTitleInput.placeholder = "Task Title";
                     taskTextInput.placeholder = "Task description...";
                 }
@@ -973,14 +977,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 taskModalTitle.textContent = 'Task Details';
                 taskTitleInput.value = currentTaskData.title;
                 taskTextInput.value = currentTaskData.description || '';
-                taskTitleInput.readOnly = true;
-                taskTextInput.readOnly = true;
 
-                // Toggle visibility based on group type
-                if (activeGroupIsIntro) {
-                    taskTextInput.classList.remove('hidden');
+                // --- VISIBILITY LOGIC ---
+                // Always show description/text input
+                taskTextInput.classList.remove('hidden');
+
+                // --- EDITABILITY LOGIC ---
+                const isDone = currentTaskData.status === 'done';
+
+                if (isDone) {
+                    // READ-ONLY MODE (Done tasks)
+                    taskTitleInput.readOnly = true;
+                    taskTextInput.readOnly = true;
+                    saveTaskBtn.classList.add('hidden');
+
+                    // Show Completion details
+                    // ... (handled below)
                 } else {
-                    taskTextInput.classList.remove('hidden'); // Fix: Show for everyone
+                    // EDIT MODE (Todo tasks)
+                    // Allow editing title and description!
+                    taskTitleInput.readOnly = false;
+                    taskTextInput.readOnly = false;
+                    saveTaskBtn.classList.remove('hidden');
+                    saveTaskBtn.textContent = 'Save Changes'; // Distinct text
                 }
 
                 // Solution Field Logic
@@ -988,17 +1007,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 const solutionLabel = document.getElementById('solution-label');
                 solutionInput.value = currentTaskData.solution || '';
 
-                if (currentTaskData.status === 'done') {
+                if (isDone) {
                     // If done, show solution as read-only
-                    saveTaskBtn.classList.add('hidden');
                     completeTaskBtn.classList.add('hidden');
                     solutionInput.readOnly = true;
                     solutionLabel.classList.remove('hidden');
                     solutionInput.classList.remove('hidden');
                 } else {
-                    // If todo, allow writing solution
-                    saveTaskBtn.classList.add('hidden');
+                    // If todo, allow writing solution (for completion)
+                    // The complete button handles the solution saving, so we hide it here?
+                    // Actually, complete button is for MARKING as done.
+                    // If we just want to edit text, we use Save Changes.
                     completeTaskBtn.classList.remove('hidden');
+
+                    // Hide solution input in "Edit" mode unless we click complete?
+                    // Original logic showed it for "completing". 
+                    // Let's keep solution input hidden until we click complete? 
+                    // Or keep it visible but writable? 
+                    // Let's follow original: solution input was part of completion flow.
+                    // But here we are just editing details.
+                    // We can keep solution hidden in standard edit View.
                     solutionInput.readOnly = false;
                     solutionLabel.classList.remove('hidden');
                     solutionInput.classList.remove('hidden');
@@ -1032,14 +1060,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const radio = document.querySelector(`input[name="priority"][value="${currentTaskData.priority}"]`);
                     if (radio) radio.checked = true;
                 }
-                document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = true);
+                // Enable priority editing if not done
+                document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = isDone);
 
                 // --- DELETE BUTTON LOGIC ---
-                // Show for ALL existing tasks (ToDo or Done)
-                // Hide only for new tasks (managed by 'create' mode block)
-                // --- DELETE BUTTON LOGIC ---
-                // Show for ALL existing tasks (ToDo or Done)
-                // Hide only for new tasks (managed by 'create' mode block)
                 const deleteBtn = document.getElementById('delete-task-btn');
                 deleteBtn.classList.remove('hidden');
 
@@ -1054,9 +1078,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); // Local time adjustment
                         scheduleInput.value = dt.toISOString().slice(0, 16);
                     }
-                    scheduleInput.readOnly = true; // Read only in view mode? Or allow edit? Let's allow edit if TODO.
 
-                    if (currentTaskData.status === 'done') {
+                    if (isDone) {
                         scheduleInput.readOnly = true;
                     } else {
                         scheduleInput.readOnly = false; // Allow rescheduling if needed
@@ -1083,64 +1106,102 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Safe Priority Check
                 const priorityEl = document.querySelector('input[name="priority"]:checked');
-                const priority = priorityEl ? priorityEl.value : 'normal'; // Default to normal if missing
+                const priority = priorityEl ? priorityEl.value : 'normal';
 
-                if (title && activeGroupId) {
-                    // --- Validation for Introduction Group ---
-                    const scheduleInput = document.getElementById('task-schedule-input');
-                    if (activeGroupIsIntro && !scheduleInput.value) {
-                        showNotification('Please select a Date & Time for the Introduction.', 'error');
-                        return;
-                    }
-                    // -----------------------------------------
+                // --- MODE CHECK: UPDATE vs CREATE ---
+                if (currentTaskData && currentTaskData.id) {
+                    // === UPDATE EXISTING TASK ===
 
-                    // --- Duplicate Check ---
-                    // Skip duplicate check for Introduction group (schedule allows repeats)
-                    if (!activeGroupIsIntro) {
-                        const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
-                        if (groupCard) {
-                            const existingLis = groupCard.querySelectorAll('li');
-                            let isDuplicate = false;
-                            existingLis.forEach(li => {
-                                // Skip Header LIs (they don't have dataset.id)
-                                if (!li.dataset.id) return;
-
-                                const existingTitle = li.dataset.title || (li.querySelector('span:last-child') ? li.querySelector('span:last-child').innerText.split(' - ')[0].trim() : '');
-                                if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
-                                    isDuplicate = true;
-                                }
-                            });
-
-                            if (isDuplicate) {
-                                showNotification('Task with this name already exists in this group!', 'error');
-                                return; // Stop creation
-                            }
+                    // Validations
+                    if (currentTaskData.scheduled_at && !document.getElementById('task-schedule-input').value) {
+                        // If it HAD a schedule (Intro task), ensure it keeps one? 
+                        // Or if we are in Intro group.
+                        // Check activeGroupIsIntro or similar context if available, 
+                        // or just rely on input presence if it was visible.
+                        if (!document.getElementById('task-schedule-input').classList.contains('hidden') && !document.getElementById('task-schedule-input').value) {
+                            showNotification('Date & Time cannot be empty.', 'error');
+                            return;
                         }
                     }
-                    // -----------------------
 
-                    // Format Date for MySQL (YYYY-MM-DD HH:MM:SS)
-                    let formattedScheduledAt = null;
-                    const rawDate = document.getElementById('task-schedule-input').value;
-                    if (rawDate) {
-                        // rawDate is usually YYYY-MM-DDTHH:MM
-                        formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
-                    }
-
-                    const newTask = await createTaskAPI({
-                        group_id: activeGroupId,
+                    // Prepare Update Data
+                    const updateData = {
                         title: title,
                         description: text,
-                        priority: priority,
-                        status: 'todo',
-                        scheduled_at: formattedScheduledAt // Send formatted date
-                    });
+                        priority: priority
+                    };
 
-                    if (newTask) {
-                        await loadGroups(); // Reload all groups to ensure correct sorting/grouping matches Server state
+                    // Handle Schedule Update
+                    const rawDate = document.getElementById('task-schedule-input').value;
+                    if (rawDate && !document.getElementById('schedule-container').classList.contains('hidden')) {
+                        updateData.scheduled_at = rawDate.replace('T', ' ') + ':00';
+                    }
+
+                    const success = await updateTaskAPI(currentTaskData.id, updateData);
+
+                    if (success) {
+                        await loadGroups();
                         hideTaskModal();
+                        showNotification('Task updated successfully!', 'success');
                     } else {
-                        showNotification('Failed to create task (API Error).', 'error');
+                        showNotification('Failed to update task.', 'error');
+                    }
+
+                } else {
+                    // === CREATE NEW TASK ===
+                    if (title && activeGroupId) {
+                        // --- Validation for Introduction Group ---
+                        const scheduleInput = document.getElementById('task-schedule-input');
+                        if (activeGroupIsIntro && !scheduleInput.value) {
+                            showNotification('Please select a Date & Time for the Introduction.', 'error');
+                            return;
+                        }
+                        // -----------------------------------------
+
+                        // --- Duplicate Check ---
+                        if (!activeGroupIsIntro) {
+                            const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
+                            if (groupCard) {
+                                const existingLis = groupCard.querySelectorAll('li');
+                                let isDuplicate = false;
+                                existingLis.forEach(li => {
+                                    if (!li.dataset.id) return;
+                                    const existingTitle = li.dataset.title || (li.querySelector('span:last-child') ? li.querySelector('span:last-child').innerText.split(' - ')[0].trim() : '');
+                                    if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
+                                        isDuplicate = true;
+                                    }
+                                });
+
+                                if (isDuplicate) {
+                                    showNotification('Task with this name already exists in this group!', 'error');
+                                    return; // Stop creation
+                                }
+                            }
+                        }
+                        // -----------------------
+
+                        // Format Date for MySQL (YYYY-MM-DD HH:MM:SS)
+                        let formattedScheduledAt = null;
+                        const rawDate = document.getElementById('task-schedule-input').value;
+                        if (rawDate) {
+                            formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
+                        }
+
+                        const newTask = await createTaskAPI({
+                            group_id: activeGroupId,
+                            title: title,
+                            description: text,
+                            priority: priority,
+                            status: 'todo',
+                            scheduled_at: formattedScheduledAt
+                        });
+
+                        if (newTask) {
+                            await loadGroups();
+                            hideTaskModal();
+                        } else {
+                            showNotification('Failed to create task (API Error).', 'error');
+                        }
                     }
                 }
             } catch (err) {
@@ -1193,38 +1254,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
             allCards.forEach(card => {
                 const cardTitle = card.querySelector('h3').textContent.toLowerCase();
-                const tasks = card.querySelectorAll('li');
-                let hasVisibleTasks = false;
-
-                // If the group title matches, we will show all tasks in it (optional preference)
                 const groupMatches = cardTitle.includes(filterText);
+                const listItems = Array.from(card.querySelectorAll('li'));
+                let hasVisibleTasks = false;
+                let currentHeader = null;
+                let currentHeaderMatches = false;
 
-                tasks.forEach(task => {
-                    const text = task.innerText.toLowerCase();
-                    const isHeader = !task.dataset.id; // Heuristic: headers don't have IDs
+                listItems.forEach(li => {
+                    const isHeader = !li.dataset.id;
 
-                    // Logic: Show if group matches, OR text matches, OR filter is empty
-                    // Special case: For headers, maybe keep them if we want? 
-                    // For now, strict search: 
+                    if (isHeader) {
+                        currentHeader = li;
+                        const headerText = li.innerText.toLowerCase();
+                        // Check if the header itself matches the filter
+                        currentHeaderMatches = headerText.includes(filterText);
 
-                    if (filterText === '' || groupMatches || text.includes(filterText)) {
-                        task.style.display = '';
-                        // Only count as "visible task" if it's not just a header (unless header matched)
-                        if (!isHeader || text.includes(filterText)) {
-                            hasVisibleTasks = true;
+                        // Show header if:
+                        // 1. Filter is empty (show all)
+                        // 2. Header matches (show this section)
+                        // Note: Removed groupMatches to prevent "Introduction" or "To Do" matches from showing everything.
+                        if (filterText === '' || currentHeaderMatches) {
+                            li.style.display = '';
+                        } else {
+                            li.style.display = 'none';
                         }
-                        // If it's a header and we are just showing it because group matched, that's fine.
-                        if (isHeader && groupMatches) hasVisibleTasks = true;
                     } else {
-                        task.style.display = 'none';
+                        // It's a task
+                        const text = li.innerText.toLowerCase();
+                        // Task matches if:
+                        // 1. Filter is empty
+                        // 2. The Header it belongs to matches (Show all tasks under this date)
+                        // 3. The task text itself matches
+                        const taskMatches = (filterText === '') || currentHeaderMatches || text.includes(filterText);
+
+                        if (taskMatches) {
+                            li.style.display = '';
+                            hasVisibleTasks = true;
+                            // If we have a header that is currently hidden (e.g. because we matched ONLY the task text),
+                            // showing the task requires showing its header context.
+                            if (currentHeader && currentHeader.style.display === 'none') {
+                                currentHeader.style.display = '';
+                            }
+                        } else {
+                            li.style.display = 'none';
+                        }
                     }
                 });
 
-                // Always show card if filter is empty (restore state)
+                // Display card if filter is empty OR if it has visible content
                 if (filterText === '') {
                     card.style.display = '';
                 } else {
-                    // Show card only if it has meaningful visible content
                     card.style.display = hasVisibleTasks ? '' : 'none';
                 }
             });
