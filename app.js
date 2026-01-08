@@ -241,12 +241,20 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ensure fixed groups exist in DB and update DOM with their real IDs
             const groups = await fetchGroups();
 
-            // MIGRATION: Rename "Sick" to "Sick Carers" if it exists (User request)
+            // MIGRATION 1: Rename "Sick" to "Sick Carers"
             const manualSickGroup = groups.find(g => g.name === 'Sick');
             if (manualSickGroup) {
-                console.log("Renaming manual 'Sick' group to 'Sick Carers'");
+                console.log("Renaming 'Sick' -> 'Sick Carers'");
                 await renameGroupAPI(manualSickGroup.id, 'Sick Carers');
-                manualSickGroup.name = 'Sick Carers'; // Update local memory
+                manualSickGroup.name = 'Sick Carers';
+            }
+
+            // MIGRATION 2: Rename "Sick Carers Returned" -> "Returned Sick Carers" (User Request)
+            const oldReturnedGroup = groups.find(g => g.name === 'Sick Carers Returned');
+            if (oldReturnedGroup) {
+                console.log("Renaming 'Sick Carers Returned' -> 'Returned Sick Carers'");
+                await renameGroupAPI(oldReturnedGroup.id, 'Returned Sick Carers');
+                oldReturnedGroup.name = 'Returned Sick Carers';
             }
 
             const fixedDefs = [
@@ -256,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
                 { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
                 { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' },
-                { name: 'Sick Carers Returned', selector: '[data-group="sick-carers-returned"]', color: 'orange' }
+                { name: 'Returned Sick Carers', selector: '[data-group="sick-carers-returned"]', color: 'orange' }
             ];
 
             for (const def of fixedDefs) {
@@ -536,178 +544,192 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (hardcodedCard && hardcodedCard.dataset.group === 'introduction') {
                             hardcodedCard.dataset.group = group.id;
                         }
-                    } else if (
-                        group.name === 'Carer Sick' ||
-                        group.name === 'Returned Carers' ||
-                        group.name === 'Cuidadores que retornaram'
-                    ) {
-                        // AUTO-DELETE CLEANUP
-                        console.log(`Auto-deleting requested group: ${group.name}`);
-                        deleteGroupAPI(group.id);
-                    } else {
-                        // Truly dynamic group
-                        renderGroup(group);
+                        hardcodedCard.dataset.group = group.id;
                     }
+                } else if (
+                    lowerName === 'sick carers' ||
+                    lowerName === 'returned sick carers' ||
+                    lowerName === 'sick carers returned'
+                ) {
+                    console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
+                    renderFixedGroupTasks(group);
+                    // Bind if needed
+                    let selector = lowerName.includes('returned') ? '[data-group="sick-carers-returned"]' : '[data-group="sick-carers"]';
+                    const hardcodedCards = document.querySelectorAll(selector);
+                    hardcodedCards.forEach(card => card.dataset.group = group.id);
+
+                } else if (
+                    group.name === 'Carer Sick' ||
+                    group.name === 'Returned Carers' ||
+                    group.name === 'Cuidadores que retornaram'
+                ) {
+                    // AUTO-DELETE CLEANUP
+                    console.log(`Auto-deleting requested group: ${group.name}`);
+                    deleteGroupAPI(group.id);
+                } else {
+                    // Truly dynamic group
+                    renderGroup(group);
                 }
-            });
-        }
-
-        function renderIntroductionTasks(group) {
-            // Separar tarefas
-            const todoTasks = group.tasks.filter(t => t.status !== 'done');
-            const doneTasks = group.tasks.filter(t => t.status === 'done');
-
-            // Renderizar ToDo
-            const todoContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="todo"] ul`);
-            if (todoContainer) {
-                renderIntroList(todoContainer, todoTasks, group.id);
             }
-
-            // Renderizar Done
-            const doneContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"] ul`);
-            if (doneContainer) {
-                renderIntroList(doneContainer, doneTasks, group.id);
-            }
-        }
-
-        function renderIntroList(container, tasks, groupId) {
-            // Re-use generic with specific settings for Intro (Schedule ASC, Vertical Layout)
-            // Use 'cyan' as default for Intro if color isn't explicitly passed (or look it up)
-            // Ideally we should pass group color, but Intro is always cyan/blue-ish.
-            renderGroupedList(container, tasks, 'scheduled_at', 'asc', true, 'cyan');
-        }
-
-        // Generic Renderer with Date Headers
-        function renderGroupedList(container, tasks, dateField, sortOrder = 'desc', isIntroduction = false, groupColor = 'cyan') {
-            container.innerHTML = '';
-
-            const theme = colorThemeMap[groupColor] || colorThemeMap['cyan'];
-
-            tasks.sort((a, b) => {
-                const dateA = safeDate(a[dateField]) || (sortOrder === 'asc' ? new Date('9999-12-31') : new Date('0000-01-01'));
-                const dateB = safeDate(b[dateField]) || (sortOrder === 'asc' ? new Date('9999-12-31') : new Date('0000-01-01')); // Handle nulls
-
-                // Safe parsing for subtraction
-                const valA = dateA instanceof Date ? dateA.getTime() : 0;
-                const valB = dateB instanceof Date ? dateB.getTime() : 0;
-
-                return sortOrder === 'asc' ? valA - valB : valB - valA;
-            });
-
-            let lastDateStr = null;
-
-            tasks.forEach(task => {
-                const dateObj = safeDate(task[dateField]);
-                let isValidDate = dateObj && !isNaN(dateObj.getTime());
-
-                // For schedule, required. For others, optional but if missing, put in "No Date" bucket or just render?
-                // If invalid date in 'created_at' (shouldn't happen), treat as no header?
-
-                if (isValidDate) {
-                    const year = String(dateObj.getFullYear()).slice(-2); // Get last 2 digits
-                    const day = String(dateObj.getDate()).padStart(2, '0');
-                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                    const weekday = dateObj.toLocaleDateString('en-GB', { weekday: 'long' });
-
-                    // Requested format: DD/MM/YY - Weekday
-                    const dayStr = `${day}/${month}/${year} - ${weekday}`;
-
-                    if (dayStr !== lastDateStr) {
-                        const header = document.createElement('li');
-                        // Glassmorphism styling as requested - More transparent, no border
-                        header.style.backgroundColor = 'rgba(255, 255, 255, 0.55)'; // More transparent
-                        header.style.border = 'none'; // No border
-                        header.style.backdropFilter = 'blur(4px)';
-                        header.style.fontWeight = 'bold';
-                        header.style.padding = '5px 10px';
-                        header.style.marginTop = '10px';
-                        header.style.borderRadius = '8px';
-                        header.style.color = '#555555'; // Darker grey for better contrast on white
-                        header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
-                        container.appendChild(header);
-                        lastDateStr = dayStr;
-                    }
-                }
-
-                const taskEl = createTaskElement(task, isIntroduction);
-                container.appendChild(taskEl);
             });
         }
 
-        function renderFixedGroupTasks(group) {
-            // Find the DOM elements for this group (now using ID match)
-            const todoCard = document.querySelector(`.task-card[data-group="${group.id}"][data-type="todo"]`);
-            const doneCard = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"]`);
+function renderIntroductionTasks(group) {
+    // Separar tarefas
+    const todoTasks = group.tasks.filter(t => t.status !== 'done');
+    const doneTasks = group.tasks.filter(t => t.status === 'done');
 
-            if (todoCard && doneCard) {
-                const todoContainer = todoCard.querySelector('ul');
-                const doneContainer = doneCard.querySelector('ul');
+    // Renderizar ToDo
+    const todoContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="todo"] ul`);
+    if (todoContainer) {
+        renderIntroList(todoContainer, todoTasks, group.id);
+    }
 
-                // Determine color based on name if group.color is missing (Legacy Fix)
-                let groupColor = group.color;
-                if (!groupColor) {
-                    if (group.name === 'Coordinators') groupColor = 'yellow';
-                    else if (group.name === 'Supervisors') groupColor = 'green';
-                    else if (group.name === 'Sheets Needed') groupColor = 'purple';
-                    else if (group.name.includes('Introduction')) groupColor = 'cyan';
-                }
+    // Renderizar Done
+    const doneContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"] ul`);
+    if (doneContainer) {
+        renderIntroList(doneContainer, doneTasks, group.id);
+    }
+}
 
-                // ToDo: Group by Created At (Newest First)
-                const todoTasks = group.tasks.filter(t => t.status !== 'done');
-                renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false, groupColor);
+function renderIntroList(container, tasks, groupId) {
+    // Re-use generic with specific settings for Intro (Schedule ASC, Vertical Layout)
+    // Use 'cyan' as default for Intro if color isn't explicitly passed (or look it up)
+    // Ideally we should pass group color, but Intro is always cyan/blue-ish.
+    renderGroupedList(container, tasks, 'scheduled_at', 'asc', true, 'cyan');
+}
 
-                // Done: Group by Completed At (Newest First)
-                const doneTasks = group.tasks.filter(t => t.status === 'done');
-                renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false, groupColor);
+// Generic Renderer with Date Headers
+function renderGroupedList(container, tasks, dateField, sortOrder = 'desc', isIntroduction = false, groupColor = 'cyan') {
+    container.innerHTML = '';
+
+    const theme = colorThemeMap[groupColor] || colorThemeMap['cyan'];
+
+    tasks.sort((a, b) => {
+        const dateA = safeDate(a[dateField]) || (sortOrder === 'asc' ? new Date('9999-12-31') : new Date('0000-01-01'));
+        const dateB = safeDate(b[dateField]) || (sortOrder === 'asc' ? new Date('9999-12-31') : new Date('0000-01-01')); // Handle nulls
+
+        // Safe parsing for subtraction
+        const valA = dateA instanceof Date ? dateA.getTime() : 0;
+        const valB = dateB instanceof Date ? dateB.getTime() : 0;
+
+        return sortOrder === 'asc' ? valA - valB : valB - valA;
+    });
+
+    let lastDateStr = null;
+
+    tasks.forEach(task => {
+        const dateObj = safeDate(task[dateField]);
+        let isValidDate = dateObj && !isNaN(dateObj.getTime());
+
+        // For schedule, required. For others, optional but if missing, put in "No Date" bucket or just render?
+        // If invalid date in 'created_at' (shouldn't happen), treat as no header?
+
+        if (isValidDate) {
+            const year = String(dateObj.getFullYear()).slice(-2); // Get last 2 digits
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const weekday = dateObj.toLocaleDateString('en-GB', { weekday: 'long' });
+
+            // Requested format: DD/MM/YY - Weekday
+            const dayStr = `${day}/${month}/${year} - ${weekday}`;
+
+            if (dayStr !== lastDateStr) {
+                const header = document.createElement('li');
+                // Glassmorphism styling as requested - More transparent, no border
+                header.style.backgroundColor = 'rgba(255, 255, 255, 0.55)'; // More transparent
+                header.style.border = 'none'; // No border
+                header.style.backdropFilter = 'blur(4px)';
+                header.style.fontWeight = 'bold';
+                header.style.padding = '5px 10px';
+                header.style.marginTop = '10px';
+                header.style.borderRadius = '8px';
+                header.style.color = '#555555'; // Darker grey for better contrast on white
+                header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
+                container.appendChild(header);
+                lastDateStr = dayStr;
             }
         }
 
-        // --- Logout Logic ---
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                performLogout();
-            });
+        const taskEl = createTaskElement(task, isIntroduction);
+        container.appendChild(taskEl);
+    });
+}
+
+function renderFixedGroupTasks(group) {
+    // Find the DOM elements for this group (now using ID match)
+    const todoCard = document.querySelector(`.task-card[data-group="${group.id}"][data-type="todo"]`);
+    const doneCard = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"]`);
+
+    if (todoCard && doneCard) {
+        const todoContainer = todoCard.querySelector('ul');
+        const doneContainer = doneCard.querySelector('ul');
+
+        // Determine color based on name if group.color is missing (Legacy Fix)
+        let groupColor = group.color;
+        if (!groupColor) {
+            if (group.name === 'Coordinators') groupColor = 'yellow';
+            else if (group.name === 'Supervisors') groupColor = 'green';
+            else if (group.name === 'Sheets Needed') groupColor = 'purple';
+            else if (group.name.includes('Introduction')) groupColor = 'cyan';
         }
 
-        function renderGroup(group) {
-            const todoCard = createCardElement(group, 'todo');
-            const doneCard = createCardElement(group, 'done');
-            tasksGrid.appendChild(todoCard);
-            tasksGrid.appendChild(doneCard);
+        // ToDo: Group by Created At (Newest First)
+        const todoTasks = group.tasks.filter(t => t.status !== 'done');
+        renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false, groupColor);
 
-            const todoList = todoCard.querySelector('ul');
-            const doneList = doneCard.querySelector('ul');
+        // Done: Group by Completed At (Newest First)
+        const doneTasks = group.tasks.filter(t => t.status === 'done');
+        renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false, groupColor);
+    }
+}
 
-            // ToDo: Group by Created At (Newest First)
-            const todoTasks = group.tasks.filter(t => t.status !== 'done');
-            renderGroupedList(todoList, todoTasks, 'created_at', 'desc', false, group.color);
+// --- Logout Logic ---
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        performLogout();
+    });
+}
 
-            // Done: Group by Completed At (Newest First)
-            const doneTasks = group.tasks.filter(t => t.status === 'done');
-            renderGroupedList(doneList, doneTasks, 'completed_at', 'desc', false, group.color);
-        }
+function renderGroup(group) {
+    const todoCard = createCardElement(group, 'todo');
+    const doneCard = createCardElement(group, 'done');
+    tasksGrid.appendChild(todoCard);
+    tasksGrid.appendChild(doneCard);
 
-        function createCardElement(group, type) {
-            const div = document.createElement('div');
-            div.className = 'task-card';
-            div.dataset.group = group.id;
-            div.dataset.type = type;
-            div.dataset.color = group.color;
+    const todoList = todoCard.querySelector('ul');
+    const doneList = doneCard.querySelector('ul');
 
-            const titlePrefix = type === 'todo' ? 'To Do' : 'Tasks done';
+    // ToDo: Group by Created At (Newest First)
+    const todoTasks = group.tasks.filter(t => t.status !== 'done');
+    renderGroupedList(todoList, todoTasks, 'created_at', 'desc', false, group.color);
 
-            // Failsafe: Never allow delete button for fixed groups even if rendered dynamically
-            let isProtected = group.name.toLowerCase().includes('introduction') ||
-                group.name === 'Coordinators' ||
-                group.name === 'Supervisors' ||
-                group.name === 'Sheets Needed' ||
-                group.name === 'Sick Carers' ||
-                group.name === 'Sick Carers Returned';
+    // Done: Group by Completed At (Newest First)
+    const doneTasks = group.tasks.filter(t => t.status === 'done');
+    renderGroupedList(doneList, doneTasks, 'completed_at', 'desc', false, group.color);
+}
 
-            const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
-            const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
+function createCardElement(group, type) {
+    const div = document.createElement('div');
+    div.className = 'task-card';
+    div.dataset.group = group.id;
+    div.dataset.type = type;
+    div.dataset.color = group.color;
 
-            div.innerHTML = `
+    const titlePrefix = type === 'todo' ? 'To Do' : 'Tasks done';
+
+    // Failsafe: Never allow delete button for fixed groups even if rendered dynamically
+    let isProtected = group.name.toLowerCase().includes('introduction') ||
+        group.name === 'Coordinators' ||
+        group.name === 'Supervisors' ||
+        group.name === 'Sheets Needed' ||
+        group.name === 'Sick Carers' ||
+        group.name === 'Sick Carers Returned';
+
+    const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
+    const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
+
+    div.innerHTML = `
                 ${deleteBtnHTML}
                 <div class="card-header">
                     <h3>${titlePrefix} - ${group.name}</h3>
@@ -715,799 +737,799 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <ul></ul>
             `;
-            return div;
+    return div;
+}
+
+function createTaskElement(task, isIntroduction = false) {
+    const li = document.createElement('li');
+    li.dataset.id = task.id;
+    li.dataset.text = task.description || '';
+    li.dataset.creationDate = task.created_at;
+    li.dataset.completionDate = task.completed_at || '';
+    li.dataset.priority = task.priority;
+    li.dataset.title = task.title;
+    li.dataset.solution = task.solution || '';
+    li.dataset.created_by = task.created_by || '';
+    li.dataset.completed_by = task.completed_by || ''; // NEW: Tracking completion user
+    li.dataset.scheduled_at = task.scheduled_at || '';
+
+    const creationDateObj = safeDate(task.created_at);
+    const creationDate = (creationDateObj && !isNaN(creationDateObj)) ? creationDateObj.toLocaleDateString('en-GB') : '';
+
+    // --- Safe Element Creation (Anti-XSS) ---
+
+    // Priority Dot
+    const dot = document.createElement('span');
+    dot.className = `task-item-priority-dot ${task.priority}`;
+
+    // Title Container
+    const titleContainer = document.createElement('div');
+    // Check for intro mode (Vertical layout)
+    if (isIntroduction) {
+        titleContainer.style.cssText = "display:flex; flex-direction:column; width:100%;";
+        // Top Row (Time + Client)
+        const topRow = document.createElement('div');
+        topRow.style.cssText = "display:flex; align-items:center; font-size:1.1em; margin-bottom:2px;";
+
+        let timeStr = "--:--";
+        if (task.scheduled_at) {
+            const dateObj = safeDate(task.scheduled_at);
+            if (!isNaN(dateObj.getTime())) {
+                timeStr = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            }
         }
 
-        function createTaskElement(task, isIntroduction = false) {
-            const li = document.createElement('li');
-            li.dataset.id = task.id;
-            li.dataset.text = task.description || '';
-            li.dataset.creationDate = task.created_at;
-            li.dataset.completionDate = task.completed_at || '';
-            li.dataset.priority = task.priority;
-            li.dataset.title = task.title;
-            li.dataset.solution = task.solution || '';
-            li.dataset.created_by = task.created_by || '';
-            li.dataset.completed_by = task.completed_by || ''; // NEW: Tracking completion user
-            li.dataset.scheduled_at = task.scheduled_at || '';
+        // Add Dot to Top Row
+        topRow.appendChild(dot);
 
-            const creationDateObj = safeDate(task.created_at);
-            const creationDate = (creationDateObj && !isNaN(creationDateObj)) ? creationDateObj.toLocaleDateString('en-GB') : '';
+        const titleText = document.createElement('strong');
+        titleText.textContent = `${timeStr} - ${task.title}`; // Safe text assignment
+        topRow.appendChild(titleText);
 
-            // --- Safe Element Creation (Anti-XSS) ---
+        // Bottom Row (Caregiver)
+        const bottomRow = document.createElement('span');
+        bottomRow.style.cssText = "font-size:0.9em; color:#555; margin-left:22px;";
+        bottomRow.textContent = `Carer Name: ${task.description}`; // Safe text assignment
 
-            // Priority Dot
-            const dot = document.createElement('span');
-            dot.className = `task-item-priority-dot ${task.priority}`;
+        titleContainer.appendChild(topRow);
+        titleContainer.appendChild(bottomRow);
 
-            // Title Container
-            const titleContainer = document.createElement('div');
-            // Check for intro mode (Vertical layout)
-            if (isIntroduction) {
-                titleContainer.style.cssText = "display:flex; flex-direction:column; width:100%;";
-                // Top Row (Time + Client)
-                const topRow = document.createElement('div');
-                topRow.style.cssText = "display:flex; align-items:center; font-size:1.1em; margin-bottom:2px;";
+        li.appendChild(titleContainer);
 
-                let timeStr = "--:--";
-                if (task.scheduled_at) {
-                    const dateObj = safeDate(task.scheduled_at);
-                    if (!isNaN(dateObj.getTime())) {
-                        timeStr = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                    }
-                }
+    } else {
+        // Standard Mode (Horizontal)
+        li.style.display = 'flex';
+        li.style.alignItems = 'center';
 
-                // Add Dot to Top Row
-                topRow.appendChild(dot);
+        li.appendChild(dot);
 
-                const titleText = document.createElement('strong');
-                titleText.textContent = `${timeStr} - ${task.title}`; // Safe text assignment
-                topRow.appendChild(titleText);
+        const textSpan = document.createElement('span');
+        const titleStrong = document.createElement('strong');
+        titleStrong.textContent = task.title; // Safe
+        textSpan.appendChild(titleStrong);
 
-                // Bottom Row (Caregiver)
-                const bottomRow = document.createElement('span');
-                bottomRow.style.cssText = "font-size:0.9em; color:#555; margin-left:22px;";
-                bottomRow.textContent = `Carer Name: ${task.description}`; // Safe text assignment
-
-                titleContainer.appendChild(topRow);
-                titleContainer.appendChild(bottomRow);
-
-                li.appendChild(titleContainer);
-
+        // Completion/Creation Date Text
+        const dateText = document.createElement('span');
+        dateText.style.cssText = "font-size: 0.8em; color: #666; font-style: italic;";
+        if (task.completed_at) {
+            const compDateObj = safeDate(task.completed_at);
+            if (compDateObj && !isNaN(compDateObj)) {
+                dateText.textContent = ` - completed on ${compDateObj.toLocaleDateString('en-GB')}`;
             } else {
-                // Standard Mode (Horizontal)
-                li.style.display = 'flex';
-                li.style.alignItems = 'center';
-
-                li.appendChild(dot);
-
-                const textSpan = document.createElement('span');
-                const titleStrong = document.createElement('strong');
-                titleStrong.textContent = task.title; // Safe
-                textSpan.appendChild(titleStrong);
-
-                // Completion/Creation Date Text
-                const dateText = document.createElement('span');
-                dateText.style.cssText = "font-size: 0.8em; color: #666; font-style: italic;";
-                if (task.completed_at) {
-                    const compDateObj = safeDate(task.completed_at);
-                    if (compDateObj && !isNaN(compDateObj)) {
-                        dateText.textContent = ` - completed on ${compDateObj.toLocaleDateString('en-GB')}`;
-                    } else {
-                        dateText.textContent = ` - completed`;
-                    }
-                } else {
-                    dateText.textContent = ` - added on ${creationDate}`;
-                }
-                textSpan.appendChild(dateText);
-
-                li.appendChild(textSpan);
+                dateText.textContent = ` - completed`;
             }
+        } else {
+            dateText.textContent = ` - added on ${creationDate}`;
+        }
+        textSpan.appendChild(dateText);
 
-            return li;
+        li.appendChild(textSpan);
+    }
+
+    return li;
+}
+
+
+
+window.addEventListener('click', () => {
+    if (!statusPopup.classList.contains('hidden')) {
+        statusPopup.classList.add('hidden');
+    }
+});
+
+// --- Event Listeners (Global Grid) ---
+addStickerBtn.addEventListener('click', async () => {
+    const timestamp = new Date().getTime().toString().slice(-4);
+    const name = `Group ${timestamp}`;
+    const color = dynamicCardColors[Math.floor(Math.random() * dynamicCardColors.length)];
+
+    const newGroup = await createGroupAPI(name, color);
+    if (newGroup) {
+        renderGroup(newGroup);
+    }
+});
+
+tasksGrid.addEventListener('click', (e) => {
+    const target = e.target;
+
+    if (target.classList.contains('delete-sticker-btn')) {
+        const card = target.closest('.task-card');
+        if (card) {
+            groupIdToDelete = card.dataset.group;
+            confirmModalText.textContent = 'Are you sure you want to delete this entire group and all its tasks?';
+            customConfirmModal.classList.remove('hidden');
+        }
+    }
+    else if (target.classList.contains('add-task-item-btn')) {
+        const card = target.closest('.task-card');
+        if (card) {
+            activeGroupId = card.dataset.group;
+            activeGroupId = card.dataset.group;
+            // Check if it's introduction group
+            // Robust check: Check name in H3 or data-group match
+            const groupTitle = card.querySelector('.card-header h3').innerText;
+
+            if (groupTitle.toLowerCase().includes('introduction')) {
+                activeGroupIsIntro = true;
+            } else {
+                activeGroupIsIntro = false;
+            }
+            showTaskModal('create');
+        }
+    }
+    else if (target.closest('li')) {
+        const li = target.closest('li');
+        const card = li.closest('.task-card');
+
+        currentTaskData = {
+            id: li.dataset.id,
+            title: li.querySelector('span:last-child').innerText.split(' - ')[0],
+            description: li.dataset.text,
+            created_at: li.dataset.creationDate,
+            completed_at: li.dataset.completionDate,
+            priority: li.dataset.priority,
+            status: card.dataset.type === 'done' ? 'done' : 'todo',
+            solution: li.dataset.solution,
+            status: card.dataset.type === 'done' ? 'done' : 'todo',
+            solution: li.dataset.solution,
+            created_by: li.dataset.created_by, // Retrieve ownership info
+            completed_by: li.dataset.completed_by || null, // NEW
+            scheduled_at: li.dataset.scheduled_at || null // NEW
+        };
+
+        // Determine if this task belongs to Introduction group
+        const groupName = card.querySelector('h3').textContent;
+        activeGroupIsIntro = groupName.includes('Introduction');
+
+        showTaskModal('view');
+    }
+});
+
+// --- Rename Logic ---
+tasksGrid.addEventListener('dblclick', (e) => {
+    const target = e.target;
+    if (target.tagName === 'H3') {
+        // Protect fixed groups from renaming (e.g. Coordinators with custom headers)
+        if (target.closest('.non-deletable')) return;
+
+        const cardHeader = target.parentElement;
+        const currentTitle = target.textContent;
+        const prefix = currentTitle.startsWith('To Do') ? 'To Do - ' : 'Tasks done - ';
+        const baseTitle = currentTitle.replace(prefix, '');
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = baseTitle;
+        input.className = 'title-edit-input';
+
+        cardHeader.replaceChild(input, target);
+        input.focus();
+
+        const saveTitle = async () => {
+            const newBaseTitle = input.value.trim();
+            const card = cardHeader.closest('.task-card');
+            const groupId = card.dataset.group;
+
+            if (newBaseTitle) {
+                const newH3 = document.createElement('h3');
+                newH3.textContent = prefix + newBaseTitle;
+                cardHeader.replaceChild(newH3, input);
+
+                const otherType = card.dataset.type === 'todo' ? 'done' : 'todo';
+                const otherCard = document.querySelector(`.task-card[data-group="${groupId}"][data-type="${otherType}"]`);
+                if (otherCard) {
+                    const otherH3 = otherCard.querySelector('h3');
+                    const otherPrefix = otherType === 'todo' ? 'To Do - ' : 'Tasks done - ';
+                    otherH3.textContent = otherPrefix + newBaseTitle;
+                }
+
+                await renameGroupAPI(groupId, newBaseTitle);
+            } else {
+                const oldH3 = document.createElement('h3');
+                oldH3.textContent = currentTitle;
+                cardHeader.replaceChild(oldH3, input);
+            }
+        };
+
+        input.addEventListener('blur', saveTitle);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveTitle();
+        });
+    }
+});
+
+// --- Confirm Delete Modal ---
+confirmDeleteBtn.addEventListener('click', async () => {
+    // Case 1: Deleting a Group
+    if (groupIdToDelete) {
+        const success = await deleteGroupAPI(groupIdToDelete);
+        if (success) {
+            const cards = document.querySelectorAll(`.task-card[data-group="${groupIdToDelete}"]`);
+            cards.forEach(card => card.remove());
+        }
+        groupIdToDelete = null;
+    }
+    // Case 2: Deleting a Task (New)
+    else if (window.pendingDeleteTaskId) {
+        const success = await deleteTaskAPI(window.pendingDeleteTaskId); // Need to implement this
+        if (success) {
+            loadGroups(); // Refresh to remove from UI
+            showNotification('Task deleted.', 'success');
+        }
+        window.pendingDeleteTaskId = null;
+    }
+
+    customConfirmModal.classList.add('hidden');
+});
+
+cancelDeleteBtn.addEventListener('click', () => {
+    customConfirmModal.classList.add('hidden');
+    groupIdToDelete = null;
+    window.pendingDeleteTaskId = null;
+});
+
+// --- Task Modal ---
+function showTaskModal(mode) {
+    taskModal.classList.remove('hidden');
+
+    if (mode === 'create') {
+        taskModalTitle.textContent = 'New Task';
+        taskTitleInput.value = '';
+        taskTextInput.value = '';
+        taskTitleInput.readOnly = false;
+        taskTextInput.readOnly = false;
+
+        saveTaskBtn.classList.remove('hidden');
+        saveTaskBtn.textContent = 'Save Task'; // Ensure text is reset
+        completeTaskBtn.classList.add('hidden');
+        taskDates.classList.add('hidden');
+        // Hide solution in create mode
+        document.getElementById('solution-label').classList.add('hidden');
+        document.getElementById('task-solution-input').classList.add('hidden');
+        document.getElementById('task-solution-input').value = '';
+        document.getElementById('delete-task-btn').classList.add('hidden');
+
+        // Handle Schedule Input
+        const scheduleContainer = document.getElementById('schedule-container');
+        const scheduleInput = document.getElementById('task-schedule-input');
+
+        if (activeGroupIsIntro) {
+            scheduleContainer.classList.remove('hidden');
+            taskTextInput.classList.remove('hidden');
+            scheduleInput.value = ''; // Reset
+            scheduleInput.readOnly = false; // Ensure editable!
+            taskTitleInput.placeholder = "Client Name";
+            taskTextInput.placeholder = "Carer Name";
+        } else {
+            scheduleContainer.classList.add('hidden');
+            taskTextInput.classList.remove('hidden');
+            taskTitleInput.placeholder = "Task Title";
+            taskTextInput.placeholder = "Task description...";
+        }
+    } else if (mode === 'view') {
+        taskModalTitle.textContent = 'Task Details';
+        taskTitleInput.value = currentTaskData.title;
+        taskTextInput.value = currentTaskData.description || '';
+
+        // --- VISIBILITY LOGIC ---
+        // Always show description/text input
+        taskTextInput.classList.remove('hidden');
+
+        // --- EDITABILITY LOGIC ---
+        const isDone = currentTaskData.status === 'done';
+
+        if (isDone) {
+            // READ-ONLY MODE (Done tasks)
+            taskTitleInput.readOnly = true;
+            taskTextInput.readOnly = true;
+            saveTaskBtn.classList.add('hidden');
+
+            // Show Completion details
+            // ... (handled below)
+        } else {
+            // EDIT MODE (Todo tasks)
+            // Allow editing title and description!
+            taskTitleInput.readOnly = false;
+            taskTextInput.readOnly = false;
+            saveTaskBtn.classList.remove('hidden');
+            saveTaskBtn.textContent = 'Save Changes'; // Distinct text
         }
 
+        // Solution Field Logic
+        const solutionInput = document.getElementById('task-solution-input');
+        const solutionLabel = document.getElementById('solution-label');
+        solutionInput.value = currentTaskData.solution || '';
 
+        if (isDone) {
+            // If done, show solution as read-only
+            completeTaskBtn.classList.add('hidden');
+            solutionInput.readOnly = true;
+            solutionLabel.classList.remove('hidden');
+            solutionInput.classList.remove('hidden');
+        } else {
+            // If todo, allow writing solution (for completion)
+            // The complete button handles the solution saving, so we hide it here?
+            // Actually, complete button is for MARKING as done.
+            // If we just want to edit text, we use Save Changes.
+            completeTaskBtn.classList.remove('hidden');
 
-        window.addEventListener('click', () => {
-            if (!statusPopup.classList.contains('hidden')) {
-                statusPopup.classList.add('hidden');
+            // Hide solution input in "Edit" mode unless we click complete?
+            // Original logic showed it for "completing". 
+            // Let's keep solution input hidden until we click complete? 
+            // Or keep it visible but writable? 
+            // Let's follow original: solution input was part of completion flow.
+            // But here we are just editing details.
+            // We can keep solution hidden in standard edit View.
+            solutionInput.readOnly = false;
+            solutionLabel.classList.remove('hidden');
+            solutionInput.classList.remove('hidden');
+        }
+
+        taskDates.classList.remove('hidden');
+        if (currentTaskData.created_at) {
+            const createdDateStr = new Date(currentTaskData.created_at).toLocaleString('pt-BR');
+            let createdByStr = '';
+
+            if (currentTaskData.created_by && allUsersCache[currentTaskData.created_by]) {
+                createdByStr = ` by ${allUsersCache[currentTaskData.created_by]}`;
             }
-        });
 
-        // --- Event Listeners (Global Grid) ---
-        addStickerBtn.addEventListener('click', async () => {
-            const timestamp = new Date().getTime().toString().slice(-4);
-            const name = `Group ${timestamp}`;
-            const color = dynamicCardColors[Math.floor(Math.random() * dynamicCardColors.length)];
+            creationDateSpan.textContent = createdDateStr + createdByStr;
+        }
+        if (currentTaskData.completed_at) {
+            const completedDateStr = new Date(currentTaskData.completed_at).toLocaleString('pt-BR');
+            let completedByStr = '';
 
-            const newGroup = await createGroupAPI(name, color);
-            if (newGroup) {
-                renderGroup(newGroup);
+            if (currentTaskData.completed_by && allUsersCache[currentTaskData.completed_by]) {
+                completedByStr = ` by ${allUsersCache[currentTaskData.completed_by]}`;
             }
-        });
 
-        tasksGrid.addEventListener('click', (e) => {
-            const target = e.target;
+            completionDateSpan.textContent = completedDateStr + completedByStr;
+        } else {
+            completionDateSpan.textContent = 'Pending...';
+        }
 
-            if (target.classList.contains('delete-sticker-btn')) {
-                const card = target.closest('.task-card');
-                if (card) {
-                    groupIdToDelete = card.dataset.group;
-                    confirmModalText.textContent = 'Are you sure you want to delete this entire group and all its tasks?';
-                    customConfirmModal.classList.remove('hidden');
+        if (currentTaskData.priority) {
+            const radio = document.querySelector(`input[name="priority"][value="${currentTaskData.priority}"]`);
+            if (radio) radio.checked = true;
+        }
+        // Enable priority editing if not done
+        document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = isDone);
+
+        // --- DELETE BUTTON LOGIC ---
+        const deleteBtn = document.getElementById('delete-task-btn');
+        deleteBtn.classList.remove('hidden');
+
+        // Handle Schedule Input View
+        const scheduleContainer = document.getElementById('schedule-container');
+        const scheduleInput = document.getElementById('task-schedule-input');
+        if (currentTaskData.scheduled_at) {
+            scheduleContainer.classList.remove('hidden');
+            // Format for input: YYYY-MM-DDTHH:MM
+            const dt = safeDate(currentTaskData.scheduled_at);
+            if (dt && !isNaN(dt.getTime())) {
+                dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); // Local time adjustment
+                scheduleInput.value = dt.toISOString().slice(0, 16);
+            }
+
+            if (isDone) {
+                scheduleInput.readOnly = true;
+            } else {
+                scheduleInput.readOnly = false; // Allow rescheduling if needed
+            }
+        } else {
+            scheduleContainer.classList.add('hidden');
+        }
+    }
+}
+
+function hideTaskModal() {
+    taskModal.classList.add('hidden');
+    activeGroupId = null;
+    currentTaskData = null;
+    document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = false);
+}
+
+closeTaskModalBtn.addEventListener('click', hideTaskModal);
+
+saveTaskBtn.addEventListener('click', async () => {
+    try {
+        const title = taskTitleInput.value.trim();
+        const text = taskTextInput.value.trim();
+
+        // Safe Priority Check
+        const priorityEl = document.querySelector('input[name="priority"]:checked');
+        const priority = priorityEl ? priorityEl.value : 'normal';
+
+        // --- MODE CHECK: UPDATE vs CREATE ---
+        if (currentTaskData && currentTaskData.id) {
+            // === UPDATE EXISTING TASK ===
+
+            // Validations
+            if (currentTaskData.scheduled_at && !document.getElementById('task-schedule-input').value) {
+                // If it HAD a schedule (Intro task), ensure it keeps one? 
+                // Or if we are in Intro group.
+                // Check activeGroupIsIntro or similar context if available, 
+                // or just rely on input presence if it was visible.
+                if (!document.getElementById('task-schedule-input').classList.contains('hidden') && !document.getElementById('task-schedule-input').value) {
+                    showNotification('Date & Time cannot be empty.', 'error');
+                    return;
                 }
             }
-            else if (target.classList.contains('add-task-item-btn')) {
-                const card = target.closest('.task-card');
-                if (card) {
-                    activeGroupId = card.dataset.group;
-                    activeGroupId = card.dataset.group;
-                    // Check if it's introduction group
-                    // Robust check: Check name in H3 or data-group match
-                    const groupTitle = card.querySelector('.card-header h3').innerText;
 
-                    if (groupTitle.toLowerCase().includes('introduction')) {
-                        activeGroupIsIntro = true;
-                    } else {
-                        activeGroupIsIntro = false;
-                    }
-                    showTaskModal('create');
-                }
-            }
-            else if (target.closest('li')) {
-                const li = target.closest('li');
-                const card = li.closest('.task-card');
+            // Prepare Update Data
+            const updateData = {
+                title: title,
+                description: text,
+                priority: priority
+            };
 
-                currentTaskData = {
-                    id: li.dataset.id,
-                    title: li.querySelector('span:last-child').innerText.split(' - ')[0],
-                    description: li.dataset.text,
-                    created_at: li.dataset.creationDate,
-                    completed_at: li.dataset.completionDate,
-                    priority: li.dataset.priority,
-                    status: card.dataset.type === 'done' ? 'done' : 'todo',
-                    solution: li.dataset.solution,
-                    status: card.dataset.type === 'done' ? 'done' : 'todo',
-                    solution: li.dataset.solution,
-                    created_by: li.dataset.created_by, // Retrieve ownership info
-                    completed_by: li.dataset.completed_by || null, // NEW
-                    scheduled_at: li.dataset.scheduled_at || null // NEW
-                };
-
-                // Determine if this task belongs to Introduction group
-                const groupName = card.querySelector('h3').textContent;
-                activeGroupIsIntro = groupName.includes('Introduction');
-
-                showTaskModal('view');
-            }
-        });
-
-        // --- Rename Logic ---
-        tasksGrid.addEventListener('dblclick', (e) => {
-            const target = e.target;
-            if (target.tagName === 'H3') {
-                // Protect fixed groups from renaming (e.g. Coordinators with custom headers)
-                if (target.closest('.non-deletable')) return;
-
-                const cardHeader = target.parentElement;
-                const currentTitle = target.textContent;
-                const prefix = currentTitle.startsWith('To Do') ? 'To Do - ' : 'Tasks done - ';
-                const baseTitle = currentTitle.replace(prefix, '');
-
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = baseTitle;
-                input.className = 'title-edit-input';
-
-                cardHeader.replaceChild(input, target);
-                input.focus();
-
-                const saveTitle = async () => {
-                    const newBaseTitle = input.value.trim();
-                    const card = cardHeader.closest('.task-card');
-                    const groupId = card.dataset.group;
-
-                    if (newBaseTitle) {
-                        const newH3 = document.createElement('h3');
-                        newH3.textContent = prefix + newBaseTitle;
-                        cardHeader.replaceChild(newH3, input);
-
-                        const otherType = card.dataset.type === 'todo' ? 'done' : 'todo';
-                        const otherCard = document.querySelector(`.task-card[data-group="${groupId}"][data-type="${otherType}"]`);
-                        if (otherCard) {
-                            const otherH3 = otherCard.querySelector('h3');
-                            const otherPrefix = otherType === 'todo' ? 'To Do - ' : 'Tasks done - ';
-                            otherH3.textContent = otherPrefix + newBaseTitle;
-                        }
-
-                        await renameGroupAPI(groupId, newBaseTitle);
-                    } else {
-                        const oldH3 = document.createElement('h3');
-                        oldH3.textContent = currentTitle;
-                        cardHeader.replaceChild(oldH3, input);
-                    }
-                };
-
-                input.addEventListener('blur', saveTitle);
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') saveTitle();
-                });
-            }
-        });
-
-        // --- Confirm Delete Modal ---
-        confirmDeleteBtn.addEventListener('click', async () => {
-            // Case 1: Deleting a Group
-            if (groupIdToDelete) {
-                const success = await deleteGroupAPI(groupIdToDelete);
-                if (success) {
-                    const cards = document.querySelectorAll(`.task-card[data-group="${groupIdToDelete}"]`);
-                    cards.forEach(card => card.remove());
-                }
-                groupIdToDelete = null;
-            }
-            // Case 2: Deleting a Task (New)
-            else if (window.pendingDeleteTaskId) {
-                const success = await deleteTaskAPI(window.pendingDeleteTaskId); // Need to implement this
-                if (success) {
-                    loadGroups(); // Refresh to remove from UI
-                    showNotification('Task deleted.', 'success');
-                }
-                window.pendingDeleteTaskId = null;
+            // Handle Schedule Update
+            const rawDate = document.getElementById('task-schedule-input').value;
+            if (rawDate && !document.getElementById('schedule-container').classList.contains('hidden')) {
+                updateData.scheduled_at = rawDate.replace('T', ' ') + ':00';
             }
 
-            customConfirmModal.classList.add('hidden');
-        });
+            const success = await updateTaskAPI(currentTaskData.id, updateData);
 
-        cancelDeleteBtn.addEventListener('click', () => {
-            customConfirmModal.classList.add('hidden');
-            groupIdToDelete = null;
-            window.pendingDeleteTaskId = null;
-        });
+            if (success) {
+                await loadGroups();
+                hideTaskModal();
+                showNotification('Task updated successfully!', 'success');
+            } else {
+                showNotification('Failed to update task.', 'error');
+            }
 
-        // --- Task Modal ---
-        function showTaskModal(mode) {
-            taskModal.classList.remove('hidden');
-
-            if (mode === 'create') {
-                taskModalTitle.textContent = 'New Task';
-                taskTitleInput.value = '';
-                taskTextInput.value = '';
-                taskTitleInput.readOnly = false;
-                taskTextInput.readOnly = false;
-
-                saveTaskBtn.classList.remove('hidden');
-                saveTaskBtn.textContent = 'Save Task'; // Ensure text is reset
-                completeTaskBtn.classList.add('hidden');
-                taskDates.classList.add('hidden');
-                // Hide solution in create mode
-                document.getElementById('solution-label').classList.add('hidden');
-                document.getElementById('task-solution-input').classList.add('hidden');
-                document.getElementById('task-solution-input').value = '';
-                document.getElementById('delete-task-btn').classList.add('hidden');
-
-                // Handle Schedule Input
-                const scheduleContainer = document.getElementById('schedule-container');
+        } else {
+            // === CREATE NEW TASK ===
+            if (title && activeGroupId) {
+                // --- Validation for Introduction Group ---
                 const scheduleInput = document.getElementById('task-schedule-input');
-
-                if (activeGroupIsIntro) {
-                    scheduleContainer.classList.remove('hidden');
-                    taskTextInput.classList.remove('hidden');
-                    scheduleInput.value = ''; // Reset
-                    scheduleInput.readOnly = false; // Ensure editable!
-                    taskTitleInput.placeholder = "Client Name";
-                    taskTextInput.placeholder = "Carer Name";
-                } else {
-                    scheduleContainer.classList.add('hidden');
-                    taskTextInput.classList.remove('hidden');
-                    taskTitleInput.placeholder = "Task Title";
-                    taskTextInput.placeholder = "Task description...";
+                if (activeGroupIsIntro && !scheduleInput.value) {
+                    showNotification('Please select a Date & Time for the Introduction.', 'error');
+                    return;
                 }
-            } else if (mode === 'view') {
-                taskModalTitle.textContent = 'Task Details';
-                taskTitleInput.value = currentTaskData.title;
-                taskTextInput.value = currentTaskData.description || '';
+                // -----------------------------------------
 
-                // --- VISIBILITY LOGIC ---
-                // Always show description/text input
-                taskTextInput.classList.remove('hidden');
-
-                // --- EDITABILITY LOGIC ---
-                const isDone = currentTaskData.status === 'done';
-
-                if (isDone) {
-                    // READ-ONLY MODE (Done tasks)
-                    taskTitleInput.readOnly = true;
-                    taskTextInput.readOnly = true;
-                    saveTaskBtn.classList.add('hidden');
-
-                    // Show Completion details
-                    // ... (handled below)
-                } else {
-                    // EDIT MODE (Todo tasks)
-                    // Allow editing title and description!
-                    taskTitleInput.readOnly = false;
-                    taskTextInput.readOnly = false;
-                    saveTaskBtn.classList.remove('hidden');
-                    saveTaskBtn.textContent = 'Save Changes'; // Distinct text
-                }
-
-                // Solution Field Logic
-                const solutionInput = document.getElementById('task-solution-input');
-                const solutionLabel = document.getElementById('solution-label');
-                solutionInput.value = currentTaskData.solution || '';
-
-                if (isDone) {
-                    // If done, show solution as read-only
-                    completeTaskBtn.classList.add('hidden');
-                    solutionInput.readOnly = true;
-                    solutionLabel.classList.remove('hidden');
-                    solutionInput.classList.remove('hidden');
-                } else {
-                    // If todo, allow writing solution (for completion)
-                    // The complete button handles the solution saving, so we hide it here?
-                    // Actually, complete button is for MARKING as done.
-                    // If we just want to edit text, we use Save Changes.
-                    completeTaskBtn.classList.remove('hidden');
-
-                    // Hide solution input in "Edit" mode unless we click complete?
-                    // Original logic showed it for "completing". 
-                    // Let's keep solution input hidden until we click complete? 
-                    // Or keep it visible but writable? 
-                    // Let's follow original: solution input was part of completion flow.
-                    // But here we are just editing details.
-                    // We can keep solution hidden in standard edit View.
-                    solutionInput.readOnly = false;
-                    solutionLabel.classList.remove('hidden');
-                    solutionInput.classList.remove('hidden');
-                }
-
-                taskDates.classList.remove('hidden');
-                if (currentTaskData.created_at) {
-                    const createdDateStr = new Date(currentTaskData.created_at).toLocaleString('pt-BR');
-                    let createdByStr = '';
-
-                    if (currentTaskData.created_by && allUsersCache[currentTaskData.created_by]) {
-                        createdByStr = ` by ${allUsersCache[currentTaskData.created_by]}`;
-                    }
-
-                    creationDateSpan.textContent = createdDateStr + createdByStr;
-                }
-                if (currentTaskData.completed_at) {
-                    const completedDateStr = new Date(currentTaskData.completed_at).toLocaleString('pt-BR');
-                    let completedByStr = '';
-
-                    if (currentTaskData.completed_by && allUsersCache[currentTaskData.completed_by]) {
-                        completedByStr = ` by ${allUsersCache[currentTaskData.completed_by]}`;
-                    }
-
-                    completionDateSpan.textContent = completedDateStr + completedByStr;
-                } else {
-                    completionDateSpan.textContent = 'Pending...';
-                }
-
-                if (currentTaskData.priority) {
-                    const radio = document.querySelector(`input[name="priority"][value="${currentTaskData.priority}"]`);
-                    if (radio) radio.checked = true;
-                }
-                // Enable priority editing if not done
-                document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = isDone);
-
-                // --- DELETE BUTTON LOGIC ---
-                const deleteBtn = document.getElementById('delete-task-btn');
-                deleteBtn.classList.remove('hidden');
-
-                // Handle Schedule Input View
-                const scheduleContainer = document.getElementById('schedule-container');
-                const scheduleInput = document.getElementById('task-schedule-input');
-                if (currentTaskData.scheduled_at) {
-                    scheduleContainer.classList.remove('hidden');
-                    // Format for input: YYYY-MM-DDTHH:MM
-                    const dt = safeDate(currentTaskData.scheduled_at);
-                    if (dt && !isNaN(dt.getTime())) {
-                        dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); // Local time adjustment
-                        scheduleInput.value = dt.toISOString().slice(0, 16);
-                    }
-
-                    if (isDone) {
-                        scheduleInput.readOnly = true;
-                    } else {
-                        scheduleInput.readOnly = false; // Allow rescheduling if needed
-                    }
-                } else {
-                    scheduleContainer.classList.add('hidden');
-                }
-            }
-        }
-
-        function hideTaskModal() {
-            taskModal.classList.add('hidden');
-            activeGroupId = null;
-            currentTaskData = null;
-            document.querySelectorAll('input[name="priority"]').forEach(r => r.disabled = false);
-        }
-
-        closeTaskModalBtn.addEventListener('click', hideTaskModal);
-
-        saveTaskBtn.addEventListener('click', async () => {
-            try {
-                const title = taskTitleInput.value.trim();
-                const text = taskTextInput.value.trim();
-
-                // Safe Priority Check
-                const priorityEl = document.querySelector('input[name="priority"]:checked');
-                const priority = priorityEl ? priorityEl.value : 'normal';
-
-                // --- MODE CHECK: UPDATE vs CREATE ---
-                if (currentTaskData && currentTaskData.id) {
-                    // === UPDATE EXISTING TASK ===
-
-                    // Validations
-                    if (currentTaskData.scheduled_at && !document.getElementById('task-schedule-input').value) {
-                        // If it HAD a schedule (Intro task), ensure it keeps one? 
-                        // Or if we are in Intro group.
-                        // Check activeGroupIsIntro or similar context if available, 
-                        // or just rely on input presence if it was visible.
-                        if (!document.getElementById('task-schedule-input').classList.contains('hidden') && !document.getElementById('task-schedule-input').value) {
-                            showNotification('Date & Time cannot be empty.', 'error');
-                            return;
-                        }
-                    }
-
-                    // Prepare Update Data
-                    const updateData = {
-                        title: title,
-                        description: text,
-                        priority: priority
-                    };
-
-                    // Handle Schedule Update
-                    const rawDate = document.getElementById('task-schedule-input').value;
-                    if (rawDate && !document.getElementById('schedule-container').classList.contains('hidden')) {
-                        updateData.scheduled_at = rawDate.replace('T', ' ') + ':00';
-                    }
-
-                    const success = await updateTaskAPI(currentTaskData.id, updateData);
-
-                    if (success) {
-                        await loadGroups();
-                        hideTaskModal();
-                        showNotification('Task updated successfully!', 'success');
-                    } else {
-                        showNotification('Failed to update task.', 'error');
-                    }
-
-                } else {
-                    // === CREATE NEW TASK ===
-                    if (title && activeGroupId) {
-                        // --- Validation for Introduction Group ---
-                        const scheduleInput = document.getElementById('task-schedule-input');
-                        if (activeGroupIsIntro && !scheduleInput.value) {
-                            showNotification('Please select a Date & Time for the Introduction.', 'error');
-                            return;
-                        }
-                        // -----------------------------------------
-
-                        // --- Duplicate Check ---
-                        if (!activeGroupIsIntro) {
-                            const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
-                            if (groupCard) {
-                                const existingLis = groupCard.querySelectorAll('li');
-                                let isDuplicate = false;
-                                existingLis.forEach(li => {
-                                    if (!li.dataset.id) return;
-                                    const existingTitle = li.dataset.title || (li.querySelector('span:last-child') ? li.querySelector('span:last-child').innerText.split(' - ')[0].trim() : '');
-                                    if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
-                                        isDuplicate = true;
-                                    }
-                                });
-
-                                if (isDuplicate) {
-                                    showNotification('Task with this name already exists in this group!', 'error');
-                                    return; // Stop creation
-                                }
+                // --- Duplicate Check ---
+                if (!activeGroupIsIntro) {
+                    const groupCard = document.querySelector(`.task-card[data-group="${activeGroupId}"][data-type="todo"]`);
+                    if (groupCard) {
+                        const existingLis = groupCard.querySelectorAll('li');
+                        let isDuplicate = false;
+                        existingLis.forEach(li => {
+                            if (!li.dataset.id) return;
+                            const existingTitle = li.dataset.title || (li.querySelector('span:last-child') ? li.querySelector('span:last-child').innerText.split(' - ')[0].trim() : '');
+                            if (existingTitle && existingTitle.toLowerCase() === title.toLowerCase()) {
+                                isDuplicate = true;
                             }
-                        }
-                        // -----------------------
-
-                        // Format Date for MySQL (YYYY-MM-DD HH:MM:SS)
-                        let formattedScheduledAt = null;
-                        const rawDate = document.getElementById('task-schedule-input').value;
-                        if (rawDate) {
-                            formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
-                        }
-
-                        const newTask = await createTaskAPI({
-                            group_id: activeGroupId,
-                            title: title,
-                            description: text,
-                            priority: priority,
-                            status: 'todo',
-                            scheduled_at: formattedScheduledAt
                         });
 
-                        if (newTask) {
-                            await loadGroups();
-                            hideTaskModal();
-                        } else {
-                            showNotification('Failed to create task (API Error).', 'error');
+                        if (isDuplicate) {
+                            showNotification('Task with this name already exists in this group!', 'error');
+                            return; // Stop creation
                         }
                     }
                 }
-            } catch (err) {
-                console.error(err);
-                alert("Error saving task: " + err.message);
-            }
-        });
+                // -----------------------
 
-        completeTaskBtn.addEventListener('click', async () => {
-            if (currentTaskData && currentTaskData.id) {
-                // MySQL Friendly Date Format: YYYY-MM-DD HH:MM:SS
-                const now = new Date();
-                const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
-                const solution = document.getElementById('task-solution-input').value.trim();
+                // Format Date for MySQL (YYYY-MM-DD HH:MM:SS)
+                let formattedScheduledAt = null;
+                const rawDate = document.getElementById('task-schedule-input').value;
+                if (rawDate) {
+                    formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
+                }
 
-                const success = await updateTaskAPI(currentTaskData.id, {
-                    status: 'done',
-                    completed_at: mysqlDate,
-                    solution: solution // Save solution text
+                const newTask = await createTaskAPI({
+                    group_id: activeGroupId,
+                    title: title,
+                    description: text,
+                    priority: priority,
+                    status: 'todo',
+                    scheduled_at: formattedScheduledAt
                 });
 
-                if (success) {
+                if (newTask) {
+                    await loadGroups();
                     hideTaskModal();
-                    loadGroups(); // Refresh UI
-                    showNotification('Task marked as done!', 'success');
                 } else {
-                    showNotification('Failed to update task status.', 'error');
+                    showNotification('Failed to create task (API Error).', 'error');
                 }
             }
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Error saving task: " + err.message);
+    }
+});
+
+completeTaskBtn.addEventListener('click', async () => {
+    if (currentTaskData && currentTaskData.id) {
+        // MySQL Friendly Date Format: YYYY-MM-DD HH:MM:SS
+        const now = new Date();
+        const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
+        const solution = document.getElementById('task-solution-input').value.trim();
+
+        const success = await updateTaskAPI(currentTaskData.id, {
+            status: 'done',
+            completed_at: mysqlDate,
+            solution: solution // Save solution text
         });
 
+        if (success) {
+            hideTaskModal();
+            loadGroups(); // Refresh UI
+            showNotification('Task marked as done!', 'success');
+        } else {
+            showNotification('Failed to update task status.', 'error');
+        }
+    }
+});
 
-        // --- DELETE BUTTON LISTENER ---
-        const deleteTaskBtn = document.getElementById('delete-task-btn');
-        deleteTaskBtn.addEventListener('click', () => {
-            if (currentTaskData && currentTaskData.id) {
-                // Set pending ID for confirmation modal
-                window.pendingDeleteTaskId = currentTaskData.id;
-                // Stronger warning as requested
-                const confirmModalText = document.querySelector('.modal-content p');
-                confirmModalText.innerHTML = 'Are you sure you want to delete this task?<br><br><strong>WARNING: This action cannot be undone. The task will be permanently removed for EVERYONE.</strong>';
-                customConfirmModal.classList.remove('hidden');
-                hideTaskModal(); // Close the task detail modal
-            }
-        });
 
-        filterInput.addEventListener('input', () => {
-            const filterText = filterInput.value.toLowerCase().trim();
-            const allCards = document.querySelectorAll('.task-card');
+// --- DELETE BUTTON LISTENER ---
+const deleteTaskBtn = document.getElementById('delete-task-btn');
+deleteTaskBtn.addEventListener('click', () => {
+    if (currentTaskData && currentTaskData.id) {
+        // Set pending ID for confirmation modal
+        window.pendingDeleteTaskId = currentTaskData.id;
+        // Stronger warning as requested
+        const confirmModalText = document.querySelector('.modal-content p');
+        confirmModalText.innerHTML = 'Are you sure you want to delete this task?<br><br><strong>WARNING: This action cannot be undone. The task will be permanently removed for EVERYONE.</strong>';
+        customConfirmModal.classList.remove('hidden');
+        hideTaskModal(); // Close the task detail modal
+    }
+});
 
-            allCards.forEach(card => {
-                const cardTitle = card.querySelector('h3').textContent.toLowerCase();
-                const groupMatches = cardTitle.includes(filterText);
-                const listItems = Array.from(card.querySelectorAll('li'));
-                let hasVisibleTasks = false;
-                let currentHeader = null;
-                let currentHeaderMatches = false;
+filterInput.addEventListener('input', () => {
+    const filterText = filterInput.value.toLowerCase().trim();
+    const allCards = document.querySelectorAll('.task-card');
 
-                listItems.forEach(li => {
-                    const isHeader = !li.dataset.id;
+    allCards.forEach(card => {
+        const cardTitle = card.querySelector('h3').textContent.toLowerCase();
+        const groupMatches = cardTitle.includes(filterText);
+        const listItems = Array.from(card.querySelectorAll('li'));
+        let hasVisibleTasks = false;
+        let currentHeader = null;
+        let currentHeaderMatches = false;
 
-                    if (isHeader) {
-                        currentHeader = li;
-                        const headerText = li.innerText.toLowerCase();
-                        // Check if the header itself matches the filter
-                        currentHeaderMatches = headerText.includes(filterText);
+        listItems.forEach(li => {
+            const isHeader = !li.dataset.id;
 
-                        // Show header if:
-                        // 1. Filter is empty (show all)
-                        // 2. Header matches (show this section)
-                        // Note: Removed groupMatches to prevent "Introduction" or "To Do" matches from showing everything.
-                        if (filterText === '' || currentHeaderMatches) {
-                            li.style.display = '';
-                        } else {
-                            li.style.display = 'none';
-                        }
-                    } else {
-                        // It's a task
-                        const text = li.innerText.toLowerCase();
-                        // Task matches if:
-                        // 1. Filter is empty
-                        // 2. The Header it belongs to matches (Show all tasks under this date)
-                        // 3. The task text itself matches
-                        const taskMatches = (filterText === '') || currentHeaderMatches || text.includes(filterText);
+            if (isHeader) {
+                currentHeader = li;
+                const headerText = li.innerText.toLowerCase();
+                // Check if the header itself matches the filter
+                currentHeaderMatches = headerText.includes(filterText);
 
-                        if (taskMatches) {
-                            li.style.display = '';
-                            hasVisibleTasks = true;
-                            // If we have a header that is currently hidden (e.g. because we matched ONLY the task text),
-                            // showing the task requires showing its header context.
-                            if (currentHeader && currentHeader.style.display === 'none') {
-                                currentHeader.style.display = '';
-                            }
-                        } else {
-                            li.style.display = 'none';
-                        }
+                // Show header if:
+                // 1. Filter is empty (show all)
+                // 2. Header matches (show this section)
+                // Note: Removed groupMatches to prevent "Introduction" or "To Do" matches from showing everything.
+                if (filterText === '' || currentHeaderMatches) {
+                    li.style.display = '';
+                } else {
+                    li.style.display = 'none';
+                }
+            } else {
+                // It's a task
+                const text = li.innerText.toLowerCase();
+                // Task matches if:
+                // 1. Filter is empty
+                // 2. The Header it belongs to matches (Show all tasks under this date)
+                // 3. The task text itself matches
+                const taskMatches = (filterText === '') || currentHeaderMatches || text.includes(filterText);
+
+                if (taskMatches) {
+                    li.style.display = '';
+                    hasVisibleTasks = true;
+                    // If we have a header that is currently hidden (e.g. because we matched ONLY the task text),
+                    // showing the task requires showing its header context.
+                    if (currentHeader && currentHeader.style.display === 'none') {
+                        currentHeader.style.display = '';
                     }
-                });
-
-                // Display card if filter is empty OR if it has visible content
-                if (filterText === '') {
-                    card.style.display = '';
                 } else {
-                    card.style.display = hasVisibleTasks ? '' : 'none';
+                    li.style.display = 'none';
                 }
-            });
+            }
         });
 
+        // Display card if filter is empty OR if it has visible content
+        if (filterText === '') {
+            card.style.display = '';
+        } else {
+            card.style.display = hasVisibleTasks ? '' : 'none';
+        }
+    });
+});
 
 
-        // --- INITIALIZATION ---
-        // --- INITIALIZATION ---
-        (async () => {
-            try {
-                await setupFixedGroups();
-                await loadGroups();
-                await loadUsers(); // Ensure users load too
-            } catch (e) {
-                console.error(e);
-                alert("Init Failed: " + e.message);
-            }
-        })();
+
+// --- INITIALIZATION ---
+// --- INITIALIZATION ---
+(async () => {
+    try {
+        await setupFixedGroups();
+        await loadGroups();
+        await loadUsers(); // Ensure users load too
+    } catch (e) {
+        console.error(e);
+        alert("Init Failed: " + e.message);
+    }
+})();
 
 
 
     }
 
-    // --- HELPERS ---
-    function showNotification(message, type = 'success') {
-        const container = document.getElementById('notification-container');
-        if (!container) return;
+// --- HELPERS ---
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
 
-        const toast = document.createElement('div');
-        toast.className = `notification-toast ${type}`;
-        toast.innerHTML = `
+    const toast = document.createElement('div');
+    toast.className = `notification-toast ${type}`;
+    toast.innerHTML = `
             <span>${message}</span>
             <button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.2rem;">&times;</button>
         `;
 
-        container.appendChild(toast);
+    container.appendChild(toast);
 
-        // Auto remove after 3s (animation handles visual ease out)
-        setTimeout(() => {
-            if (toast.parentElement) toast.remove();
-        }, 3000);
+    // Auto remove after 3s (animation handles visual ease out)
+    setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+    }, 3000);
+}
+
+// --- LOGIN LOGIC ---
+if (isLoginPage) {
+    // Auto-Redirect if already logged in
+    const existingToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (existingToken) {
+        window.location.href = 'whiteboard.html';
     }
 
-    // --- LOGIN LOGIC ---
-    if (isLoginPage) {
-        // Auto-Redirect if already logged in
-        const existingToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        if (existingToken) {
-            window.location.href = 'whiteboard.html';
-        }
+    const loginContainer = document.getElementById('login-container');
+    const registerContainer = document.getElementById('register-container');
+    const showRegisterLink = document.getElementById('show-register');
+    const showLoginLink = document.getElementById('show-login');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
 
-        const loginContainer = document.getElementById('login-container');
-        const registerContainer = document.getElementById('register-container');
-        const showRegisterLink = document.getElementById('show-register');
-        const showLoginLink = document.getElementById('show-login');
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-
-        // --- Auto-Fill Email ---
-        const savedEmail = localStorage.getItem('savedEmail');
-        if (savedEmail) {
-            document.getElementById('login-email').value = savedEmail;
-            document.getElementById('remember-me').checked = true;
-        }
-        // -----------------------
-
-        // Toggle Forms
-        showRegisterLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginContainer.classList.add('hidden');
-            registerContainer.classList.remove('hidden');
-        });
-        showLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerContainer.classList.add('hidden');
-            loginContainer.classList.remove('hidden');
-        });
-
-        // Register Logic
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = registerForm.querySelector('button');
-            const originalText = btn.innerText;
-            btn.innerText = "Loading...";
-            btn.disabled = true;
-
-            const name = document.getElementById('register-name').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('register-confirm-password').value;
-
-            if (password !== confirmPassword) {
-                showNotification("Passwords do not match!", 'error');
-                btn.innerText = originalText;
-                btn.disabled = false;
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    showNotification('Registration successful! Please login.', 'success');
-                    setTimeout(() => showLoginLink.click(), 1500);
-                } else {
-                    showNotification(data.error || 'Registration failed', 'error');
-                }
-            } catch (error) {
-                console.error("Fetch error:", error);
-                showNotification('Error connecting to server.', 'error');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        });
-
-        // Login Logic
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = loginForm.querySelector('button');
-            const originalText = btn.innerText;
-            btn.innerText = "Loading...";
-            btn.disabled = true;
-
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const rememberMe = document.getElementById('remember-me').checked;
-
-            try {
-                const response = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    showNotification('Login successful! Redirecting...', 'success');
-
-                    // --- Storage Logic ---
-                    if (rememberMe) {
-                        // Persist session + email
-                        localStorage.setItem('authToken', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.setItem('savedEmail', email); // Save email for next time
-                    } else {
-                        // Session only + clear saved email
-                        sessionStorage.setItem('authToken', data.token);
-                        sessionStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.removeItem('savedEmail'); // Clear if they unchecked it
-                    }
-
-                    setTimeout(() => {
-                        window.location.href = 'whiteboard.html';
-                    }, 1000);
-                } else {
-                    showNotification(data.error || 'Login failed', 'error');
-                }
-            } catch (error) {
-                console.error("Fetch error:", error);
-                showNotification('Error connecting to server.', 'error');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        });
+    // --- Auto-Fill Email ---
+    const savedEmail = localStorage.getItem('savedEmail');
+    if (savedEmail) {
+        document.getElementById('login-email').value = savedEmail;
+        document.getElementById('remember-me').checked = true;
     }
+    // -----------------------
+
+    // Toggle Forms
+    showRegisterLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginContainer.classList.add('hidden');
+        registerContainer.classList.remove('hidden');
+    });
+    showLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerContainer.classList.add('hidden');
+        loginContainer.classList.remove('hidden');
+    });
+
+    // Register Logic
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = registerForm.querySelector('button');
+        const originalText = btn.innerText;
+        btn.innerText = "Loading...";
+        btn.disabled = true;
+
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-confirm-password').value;
+
+        if (password !== confirmPassword) {
+            showNotification("Passwords do not match!", 'error');
+            btn.innerText = originalText;
+            btn.disabled = false;
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showNotification('Registration successful! Please login.', 'success');
+                setTimeout(() => showLoginLink.click(), 1500);
+            } else {
+                showNotification(data.error || 'Registration failed', 'error');
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            showNotification('Error connecting to server.', 'error');
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    // Login Logic
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = loginForm.querySelector('button');
+        const originalText = btn.innerText;
+        btn.innerText = "Loading...";
+        btn.disabled = true;
+
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const rememberMe = document.getElementById('remember-me').checked;
+
+        try {
+            const response = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showNotification('Login successful! Redirecting...', 'success');
+
+                // --- Storage Logic ---
+                if (rememberMe) {
+                    // Persist session + email
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('savedEmail', email); // Save email for next time
+                } else {
+                    // Session only + clear saved email
+                    sessionStorage.setItem('authToken', data.token);
+                    sessionStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.removeItem('savedEmail'); // Clear if they unchecked it
+                }
+
+                setTimeout(() => {
+                    window.location.href = 'whiteboard.html';
+                }, 1000);
+            } else {
+                showNotification(data.error || 'Login failed', 'error');
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            showNotification('Error connecting to server.', 'error');
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+}
 
 });
