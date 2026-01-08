@@ -246,19 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Introduction (Schedule)', selector: '[data-group="introduction"]', color: 'cyan' },
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
-                { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
-                { name: 'Carer Sick', selector: '[data-group="carer-sick"]', color: 'orange' },
-                { name: 'Returned Carers', selector: '[data-group="returned-carers"]', color: 'cyan' }
+                { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' }
             ];
-
-            // Cleanup: Delete the accidental Portuguese group if it exists
-            const accidentalGroup = groups.find(g => g.name === 'Cuidadores que retornaram');
-            if (accidentalGroup) {
-                console.log("Removing accidental Portuguese group...");
-                await deleteGroupAPI(accidentalGroup.id);
-                // Refresh groups list after delete
-                groups.splice(groups.indexOf(accidentalGroup), 1);
-            }
 
             for (const def of fixedDefs) {
                 // Approximate match for Intro to avoid creating duplicates if one exists
