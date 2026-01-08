@@ -175,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let activeGroupId = null;
         let activeGroupIsIntro = false; // Flag to track if we are in intro mode
+        let activeGroupHasSchedule = false; // Flag for groups that support scheduling
         let currentTaskData = null;
 
         // --- Initialization ---
@@ -699,15 +700,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     else if (group.name === 'Supervisors') groupColor = 'green';
                     else if (group.name === 'Sheets Needed') groupColor = 'purple';
                     else if (group.name.includes('Introduction')) groupColor = 'cyan';
+                    else if (group.name === 'Sick Carers') groupColor = 'orange'; // Ensure Sick Carers gets orange
                 }
 
-                // ToDo: Group by Created At (Newest First)
-                const todoTasks = group.tasks.filter(t => t.status !== 'done');
-                renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false, groupColor);
+                // Check if this group should be schedule-based
+                const isScheduleGroup = group.name.includes('Introduction') ||
+                    group.name === 'Sick Carers' ||
+                    group.name === 'Coordinators';
 
-                // Done: Group by Completed At (Newest First)
-                const doneTasks = group.tasks.filter(t => t.status === 'done');
-                renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false, groupColor);
+                if (isScheduleGroup) {
+                    // Schedule Mode: Sort by Scheduled Date ASC, Use Vertical Layout
+                    const todoTasks = group.tasks.filter(t => t.status !== 'done');
+                    renderGroupedList(todoContainer, todoTasks, 'scheduled_at', 'asc', true, groupColor);
+
+                    const doneTasks = group.tasks.filter(t => t.status === 'done');
+                    renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'asc', true, groupColor);
+                } else {
+                    // Standard Mode: Sort by Created/Completed Date DESC
+                    const todoTasks = group.tasks.filter(t => t.status !== 'done');
+                    renderGroupedList(todoContainer, todoTasks, 'created_at', 'desc', false, groupColor);
+
+                    const doneTasks = group.tasks.filter(t => t.status === 'done');
+                    renderGroupedList(doneContainer, doneTasks, 'completed_at', 'desc', false, groupColor);
+                }
             }
         }
 
@@ -894,12 +909,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeGroupId = card.dataset.group;
                     // Check if it's introduction group
                     // Robust check: Check name in H3 or data-group match
-                    const groupTitle = card.querySelector('.card-header h3').innerText;
+                    // Check if it's introduction group or other schedule groups
+                    const groupTitle = card.querySelector('.card-header h3').innerText.toLowerCase();
 
-                    if (groupTitle.toLowerCase().includes('introduction')) {
+                    if (groupTitle.includes('introduction')) {
                         activeGroupIsIntro = true;
                     } else {
                         activeGroupIsIntro = false;
+                    }
+
+                    // New: Check if group supports schedule (Intro, Sick Carers, Admitted to Hospital)
+                    if (activeGroupIsIntro || groupTitle.includes('sick carers') || groupTitle.includes('admitted to hospital')) {
+                        activeGroupHasSchedule = true;
+                    } else {
+                        activeGroupHasSchedule = false;
                     }
                     showTaskModal('create');
                 }
@@ -1040,13 +1063,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const scheduleContainer = document.getElementById('schedule-container');
                 const scheduleInput = document.getElementById('task-schedule-input');
 
-                if (activeGroupIsIntro) {
+                if (activeGroupHasSchedule) {
                     scheduleContainer.classList.remove('hidden');
                     taskTextInput.classList.remove('hidden');
                     scheduleInput.value = ''; // Reset
                     scheduleInput.readOnly = false; // Ensure editable!
-                    taskTitleInput.placeholder = "Client Name";
-                    taskTextInput.placeholder = "Carer Name";
+
+                    if (activeGroupIsIntro) {
+                        taskTitleInput.placeholder = "Client Name";
+                        taskTextInput.placeholder = "Carer Name";
+                    } else {
+                        // Default placeholders for other schedule groups
+                        taskTitleInput.placeholder = "Task Title";
+                        taskTextInput.placeholder = "Task description...";
+                    }
                 } else {
                     scheduleContainer.classList.add('hidden');
                     taskTextInput.classList.remove('hidden');
@@ -1230,10 +1260,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // === CREATE NEW TASK ===
                     if (title && activeGroupId) {
-                        // --- Validation for Introduction Group ---
+                        // --- Validation for Schedule Groups ---
                         const scheduleInput = document.getElementById('task-schedule-input');
-                        if (activeGroupIsIntro && !scheduleInput.value) {
-                            showNotification('Please select a Date & Time for the Introduction.', 'error');
+                        if (activeGroupHasSchedule && !scheduleInput.value) {
+                            showNotification('Please select a Date & Time.', 'error');
                             return;
                         }
                         // -----------------------------------------
