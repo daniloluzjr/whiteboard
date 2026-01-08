@@ -483,9 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 coordGroup?.id,
                 superGroup?.id,
                 introGroup?.id,
-                sheetsGroup?.id,
-                sickGroup?.id,
-                returnedGroup?.id
+                sheetsGroup?.id
             ].filter(id => id);
 
             // [FIX] Force Colors for Fixed Groups in Memory if missing
@@ -493,8 +491,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (superGroup && !superGroup.color) superGroup.color = 'green';
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
-            if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
-            if (returnedGroup && !returnedGroup.color) returnedGroup.color = 'cyan';
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
@@ -524,32 +520,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (hardcodedCard && hardcodedCard.dataset.group === 'introduction') {
                             hardcodedCard.dataset.group = group.id;
                         }
-                    }
-                    else if (group.name === 'Carer Sick') {
-                        // Found a "Carer Sick" that isn't the primary fixed ID.
-                        // Render it into the Fixed Card and update the ID if the fixed card is empty/generic.
-                        console.log("Found floating Carer Sick group, forcing render as fixed.");
-                        const fixedCard = document.querySelector('[data-group="carer-sick"]');
-                        if (fixedCard) {
-                            if (fixedCard.dataset.group === 'carer-sick') fixedCard.dataset.group = group.id; // Bind ID
-                            renderFixedGroupTasks(group);
-                        }
-                    }
-                    else if (group.name === 'Returned Carers') {
-                        console.log("Found floating Returned Carers group, forcing render as fixed.");
-                        const fixedCard = document.querySelector('[data-group="returned-carers"]');
-                        if (fixedCard) {
-                            if (fixedCard.dataset.group === 'returned-carers') fixedCard.dataset.group = group.id; // Bind ID
-                            renderFixedGroupTasks(group);
-                        }
-                    }
-                    else if (group.name === 'Cuidadores que retornaram') {
-                        // Portuguese Duplicate - HIDE IT (Do not render)
-                        // Ideally delete it silently
-                        console.log("Hiding (and should delete) Portuguese duplicate.");
-                        deleteGroupAPI(group.id).then(() => console.log("Deleted Portuguese duplicate"));
-                    }
-                    else {
+                    } else if (
+                        group.name === 'Carer Sick' ||
+                        group.name === 'Returned Carers' ||
+                        group.name === 'Cuidadores que retornaram'
+                    ) {
+                        // AUTO-DELETE CLEANUP
+                        console.log(`Auto-deleting requested group: ${group.name}`);
+                        deleteGroupAPI(group.id);
+                    } else {
                         // Truly dynamic group
                         renderGroup(group);
                     }
