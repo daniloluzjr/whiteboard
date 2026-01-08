@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
                 { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
                 { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' },
-                { name: 'Sick Carers Returned', selector: '[data-group="sick-carers-returned"]', color: 'cyan' }
+                { name: 'Sick Carers Returned', selector: '[data-group="sick-carers-returned"]', color: 'orange' }
             ];
 
             for (const def of fixedDefs) {
@@ -487,7 +487,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const introGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
             const sheetsGroup = groups.find(g => g.name === 'Sheets Needed');
             const sickGroup = groups.find(g => g.name === 'Sick Carers');
-            const sickReturnedGroup = groups.find(g => g.name === 'Sick Carers Returned');
+            // Try strict match first, then case-insensitive to catch user variations
+            const sickReturnedGroup = groups.find(g => g.name === 'Sick Carers Returned') ||
+                groups.find(g => g.name.toLowerCase() === 'sick carers returned');
 
             const fixedIds = [
                 coordGroup?.id,
@@ -504,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
             if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
-            if (sickReturnedGroup && !sickReturnedGroup.color) sickReturnedGroup.color = 'cyan';
+            if (sickReturnedGroup) sickReturnedGroup.color = 'orange'; // Enforce Orange
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
