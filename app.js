@@ -290,7 +290,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
                 { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
-                { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' }
+                { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' },
+                { name: 'Carers to come in', selector: '[data-group="carers-come-in"]', color: 'pink' }
             ];
 
             for (const def of fixedDefs) {
@@ -528,6 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const sickReturnedGroup = groups.find(g => g.name === 'Returned Sick Carers') ||
                 groups.find(g => g.name === 'Sick Carers Returned') ||
                 groups.find(g => g.name.toLowerCase().includes('returned sick carers'));
+            const carersComeInGroup = groups.find(g => g.name === 'Carers to come in');
 
             const fixedIds = [
                 coordGroup?.id,
@@ -535,7 +537,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 introGroup?.id,
                 sheetsGroup?.id,
                 sickGroup?.id,
-                sickReturnedGroup?.id
+                sickReturnedGroup?.id,
+                carersComeInGroup?.id
             ].filter(id => id);
 
             // [FIX] Force Colors for Fixed Groups in Memory if missing
@@ -546,6 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // User requested BLUE (Cyan) for Sick Carers and Returned
             if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
             if (sickReturnedGroup) sickReturnedGroup.color = 'cyan';
+            if (carersComeInGroup && !carersComeInGroup.color) carersComeInGroup.color = 'pink';
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
@@ -701,12 +705,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     else if (group.name === 'Sheets Needed') groupColor = 'purple';
                     else if (group.name.includes('Introduction')) groupColor = 'cyan';
                     else if (group.name === 'Sick Carers') groupColor = 'orange'; // Ensure Sick Carers gets orange
+                    else if (group.name === 'Carers to come in') groupColor = 'pink';
                 }
 
                 // Check if this group should be schedule-based
                 const isScheduleGroup = group.name.includes('Introduction') ||
                     group.name === 'Sick Carers' ||
-                    group.name === 'Coordinators';
+                    group.name === 'Coordinators' ||
+                    group.name === 'Carers to come in';
 
                 if (isScheduleGroup) {
                     // Schedule Mode: Sort by Scheduled Date ASC, Use Vertical Layout
@@ -766,7 +772,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 group.name === 'Supervisors' ||
                 group.name === 'Sheets Needed' ||
                 group.name === 'Sick Carers' ||
-                group.name === 'Sick Carers Returned';
+                group.name === 'Sick Carers Returned' ||
+                group.name === 'Carers to come in';
 
             const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
             const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
