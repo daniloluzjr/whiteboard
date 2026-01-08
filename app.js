@@ -241,12 +241,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ensure fixed groups exist in DB and update DOM with their real IDs
             const groups = await fetchGroups();
 
+            // MIGRATION: Rename "Sick" to "Sick Carers" if it exists (User request)
+            const manualSickGroup = groups.find(g => g.name === 'Sick');
+            if (manualSickGroup) {
+                console.log("Renaming manual 'Sick' group to 'Sick Carers'");
+                await renameGroupAPI(manualSickGroup.id, 'Sick Carers');
+                manualSickGroup.name = 'Sick Carers'; // Update local memory
+            }
+
             const fixedDefs = [
                 { name: 'Introduction', selector: '[data-group="introduction"]', color: 'cyan' },
                 { name: 'Introduction (Schedule)', selector: '[data-group="introduction"]', color: 'cyan' },
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
-                { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' }
+                { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
+                { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' },
+                { name: 'Sick Carers Returned', selector: '[data-group="sick-carers-returned"]', color: 'cyan' }
             ];
 
             for (const def of fixedDefs) {
@@ -476,14 +486,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const superGroup = groups.find(g => g.name === 'Supervisors');
             const introGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
             const sheetsGroup = groups.find(g => g.name === 'Sheets Needed');
-            const sickGroup = groups.find(g => g.name === 'Carer Sick');
-            const returnedGroup = groups.find(g => g.name === 'Returned Carers'); // English Name
+            const sickGroup = groups.find(g => g.name === 'Sick Carers');
+            const sickReturnedGroup = groups.find(g => g.name === 'Sick Carers Returned');
 
             const fixedIds = [
                 coordGroup?.id,
                 superGroup?.id,
                 introGroup?.id,
-                sheetsGroup?.id
+                sheetsGroup?.id,
+                sickGroup?.id,
+                sickReturnedGroup?.id
             ].filter(id => id);
 
             // [FIX] Force Colors for Fixed Groups in Memory if missing
@@ -491,6 +503,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (superGroup && !superGroup.color) superGroup.color = 'green';
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
+            if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
+            if (sickReturnedGroup && !sickReturnedGroup.color) sickReturnedGroup.color = 'cyan';
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
@@ -684,7 +698,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let isProtected = group.name.toLowerCase().includes('introduction') ||
                 group.name === 'Coordinators' ||
                 group.name === 'Supervisors' ||
-                group.name === 'Sheets Needed';
+                group.name === 'Sheets Needed' ||
+                group.name === 'Sick Carers' ||
+                group.name === 'Sick Carers Returned';
 
             const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
             const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
