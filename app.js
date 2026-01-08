@@ -524,18 +524,44 @@ document.addEventListener('DOMContentLoaded', () => {
                         renderFixedGroupTasks(group);
                     }
                 } else {
-                    // It's a dynamic group, create full card
-                    // Fix: Prevent 'Introduction' from being rendered as dynamic if it wasn't caught in fixedIds (e.g. slight mismatch)
-                    if (group.name.trim().toLowerCase().includes('introduction')) {
+                    // Check for Fixed Groups that didn't match ID but match Name (Duplicates or Initial Load Mismatch)
+                    const lowerName = group.name.trim().toLowerCase();
+
+                    if (lowerName.includes('introduction')) {
                         console.log("Found floating Introduction group, forcing render as fixed.");
-                        // Force fix locally if needed, or just skip rendering it as dynamic to avoid duplicates
                         renderIntroductionTasks(group);
-                        // Also try to bind the hardcoded card to this ID if not already
+                        // Bind if needed
                         const hardcodedCard = document.querySelector('[data-group="introduction"]');
                         if (hardcodedCard && hardcodedCard.dataset.group === 'introduction') {
                             hardcodedCard.dataset.group = group.id;
                         }
-                    } else {
+                    }
+                    else if (group.name === 'Carer Sick') {
+                        // Found a "Carer Sick" that isn't the primary fixed ID.
+                        // Render it into the Fixed Card and update the ID if the fixed card is empty/generic.
+                        console.log("Found floating Carer Sick group, forcing render as fixed.");
+                        const fixedCard = document.querySelector('[data-group="carer-sick"]');
+                        if (fixedCard) {
+                            if (fixedCard.dataset.group === 'carer-sick') fixedCard.dataset.group = group.id; // Bind ID
+                            renderFixedGroupTasks(group);
+                        }
+                    }
+                    else if (group.name === 'Returned Carers') {
+                        console.log("Found floating Returned Carers group, forcing render as fixed.");
+                        const fixedCard = document.querySelector('[data-group="returned-carers"]');
+                        if (fixedCard) {
+                            if (fixedCard.dataset.group === 'returned-carers') fixedCard.dataset.group = group.id; // Bind ID
+                            renderFixedGroupTasks(group);
+                        }
+                    }
+                    else if (group.name === 'Cuidadores que retornaram') {
+                        // Portuguese Duplicate - HIDE IT (Do not render)
+                        // Ideally delete it silently
+                        console.log("Hiding (and should delete) Portuguese duplicate.");
+                        deleteGroupAPI(group.id).then(() => console.log("Deleted Portuguese duplicate"));
+                    }
+                    else {
+                        // Truly dynamic group
                         renderGroup(group);
                     }
                 }
