@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'yellow' },
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
                 { name: 'Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
-                { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'cyan' }
+                { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' }
             ];
 
             for (const def of fixedDefs) {
@@ -535,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
             // User requested BLUE (Cyan) for Sick Carers and Returned
-            if (sickGroup && !sickGroup.color) sickGroup.color = 'cyan';
+            if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
             if (sickReturnedGroup) sickReturnedGroup.color = 'cyan';
 
             // 1. Clear tasks from FIXED cards
@@ -1355,9 +1355,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const text = li.innerText.toLowerCase();
                         // Task matches if:
                         // 1. Filter is empty
-                        // 2. The Header it belongs to matches (Show all tasks under this date)
-                        // 3. The task text itself matches
-                        const taskMatches = (filterText === '') || currentHeaderMatches || text.includes(filterText);
+                        // 2. The task text itself matches
+                        // [FIX] Removed 'currentHeaderMatches' to prevent showing all tasks under a matching date header.
+                        // Strict filtering is preferred by user.
+                        const taskMatches = (filterText === '') || text.includes(filterText);
 
                         if (taskMatches) {
                             li.style.display = '';
