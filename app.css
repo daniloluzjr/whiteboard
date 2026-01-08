@@ -997,3 +997,29 @@ body {
   scrollbar-width: thin;
   scrollbar-color: #d6d6d6 transparent;
 }
+
+/* Sidebar Footer Link (Support) */
+.sidebar-footer-link {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.sidebar-footer-link a {
+  color: #6c757d;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.sidebar-footer-link a:hover {
+  color: #212529;
+  text-decoration: underline;
+}
+
+.sidebar-footer-link svg {
+  fill: currentColor;
+}
