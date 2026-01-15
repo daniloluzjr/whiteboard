@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update this URL if your backend is hosted elsewhere
     // If you are using Vercel, this won't work for WebSocket (requires serverless solution like Pusher). 
     // But since you have a Node server (Railway/Heroku/Render), this is fine.
-    const API_URL = 'https://web-production-b230e.up.railway.app/api';
-    // const API_URL = 'http://localhost:3001/api'; // Use this for local testing
+    // const API_URL = 'https://web-production-b230e.up.railway.app/api';
+    const API_URL = '/api'; // Use relative path for production (Same Domain)
 
     // --- PAGE ROUTER ---
     const isWhiteboard = document.querySelector('.tasks-grid');
