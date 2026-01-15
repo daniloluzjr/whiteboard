@@ -988,7 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 currentTaskData = {
                     id: li.dataset.id,
-                    title: li.querySelector('span:last-child').innerText.split(' - ')[0],
+                    title: li.dataset.title,
                     description: li.dataset.text,
                     created_at: li.dataset.creationDate,
                     completed_at: li.dataset.completionDate,
