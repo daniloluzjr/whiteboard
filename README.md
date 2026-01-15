@@ -2,22 +2,44 @@
 
 **Live App:** [https://glasnevinoffice.online/](https://glasnevinoffice.online/)  
 **GitHub Repository:** [https://github.com/daniloluzjr/whiteboard](https://github.com/daniloluzjr/whiteboard)  
-**Hosting:** Heroku (Single Domain for Frontend + Backend)
+**Backend API (Railway):** `https://web-production-b230e.up.railway.app`
 
 This is a real-time, collaborative whiteboard application designed for team task management. It separates "To Do" and "Done" tasks into intuitive card groups, providing a visual overview of team activity, now featuring a modern **Glassmorphism** UI.
 
 ---
 
-## 🚀 Deployment Architecture
+## 🚀 Deployment (Split Architecture)
 
-This project uses a decoupled architecture for maximum stability and free-tier optimization.
+This project uses a **Split Architecture** logic, meaning the visual part (Frontend) and the brain (Backend/Database) are hosted in different places.
 
-### 1. Architecture (Monolith)
-- **Host:** Heroku / Custom Domain (`glasnevinoffice.online`)
-- **Structure:** Single Node.js application (`server.js`) that serves both the API and the static frontend files.
-- **Frontend:** Static HTML/JS/CSS served from the root.
-- **Backend:** Express API available at `/api`.
-- **Database:** MySQL (Remote).
+### Overview
+1.  **Frontend (Site):** Hosted on **GitHub Pages**.
+    *   **URL:** `https://glasnevinoffice.online/`
+    *   **Function:** Displays the whiteboard and login page.
+2.  **Backend (API + Database):** Hosted on **Railway**.
+    *   **URL:** `https://web-production-b230e.up.railway.app`
+    *   **Function:** Processes login, saves tasks, and manages the database.
+
+### 1. Frontend (Static)
+- **Host:** GitHub Pages
+- **Reason:** Fastest updating, no cold starts, purely static HTML/JS/CSS.
+- **Files:** `index.html` (Redirects to whiteboard), `whiteboard.html`, `login.html`, `admin.html`, `app.js`, `app.css`.
+- **Logic:** `app.js` makes `fetch()` calls to the backend API.
+
+### 2. Backend (API)
+- **Host:** Railway (App Service)
+- **Runtime:** Node.js (Express)
+- **Address:** `https://web-production-b230e.up.railway.app`
+- **Logic:** `server.js` handles all business logic, authentication (JWT), and database queries.
+- **Auto-Sleep:** Note that free tiers may spin down. First request might take 3-5 seconds.
+
+### 3. Database
+- **Host:** Railway (MySQL Service)
+- **Type:** MySQL 8.0
+- **Structure:**
+    - `users`: Stores emails, hashed passwords (`bcrypt`), and current status.
+    - `task_groups`: Defines the columns/cards (e.g., Coordinators, Supervisors).
+    - `tasks`: Individual items linked to groups and creators.
 
 ---
 
@@ -95,16 +117,13 @@ JWT_SECRET=...
 ### To Update Frontend:
 1.  Edit `app.js`, `app.css`, or `.html` files.
 2.  Commit and Push to GitHub.
-1.  Edit files.
-2.  Commit and Push to GitHub.
-3.  Deploy key triggers update to Heroku (or manual deploy via CLI/Dashboard).
+3.  GitHub Pages updates automatically (wait ~1-2 mins).
+    *   *Tip: Cache can be sticky. Use `Ctrl+F5` to force refresh.*
 
 ### To Update Backend:
 1.  Edit `server.js`.
 2.  Commit and Push.
-1.  Edit `server.js`.
-2.  Commit and Push.
-3.  Deploy to Heroku.
+3.  Railway detects the commit and redeploys the server automatically.
 
 ---
 
