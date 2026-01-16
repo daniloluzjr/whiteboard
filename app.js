@@ -629,21 +629,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // Renderizar ToDo
             const todoContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="todo"] ul`);
             if (todoContainer) {
-                renderIntroList(todoContainer, todoTasks, group.id);
+                // [CHANGED] User requested Inverted Sort (Newest First) for Schedule
+                renderGroupedList(todoContainer, todoTasks, 'scheduled_at', 'desc', 'intro', 'cyan');
             }
 
             // Renderizar Done
             const doneContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"] ul`);
             if (doneContainer) {
-                renderIntroList(doneContainer, doneTasks, group.id);
+                renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'asc', 'intro', 'cyan');
             }
-        }
-
-        function renderIntroList(container, tasks, groupId) {
-            // Re-use generic with specific settings for Intro (Schedule ASC, Vertical Layout)
-            // Use 'cyan' as default for Intro if color isn't explicitly passed (or look it up)
-            // Ideally we should pass group color, but Intro is always cyan/blue-ish.
-            renderGroupedList(container, tasks, 'scheduled_at', 'asc', 'intro', 'cyan');
         }
 
         // Generic Renderer with Date Headers
