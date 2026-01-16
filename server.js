@@ -120,6 +120,35 @@ app.patch('/api/users/status', authenticateToken, async (req, res) => {
     }
 });
 
+// PATCH /api/users/:id - Admin update user (name, email, etc.)
+app.patch('/api/users/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, email, status } = req.body;
+
+    // Build dynamic query
+    let fields = [];
+    let values = [];
+
+    if (name !== undefined) { fields.push('name = ?'); values.push(name); }
+    if (email !== undefined) { fields.push('email = ?'); values.push(email); }
+    if (status !== undefined) { fields.push('status = ?'); values.push(status); }
+
+    if (fields.length === 0) {
+        return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(id);
+    const query = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+
+    try {
+        await pool.query(query, values);
+        res.json({ message: 'User updated successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to update user' });
+    }
+});
+
 // DELETE /api/users/:id - Delete a user (Admin/Cleanup tool)
 app.delete('/api/users/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
