@@ -629,14 +629,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // Renderizar ToDo
             const todoContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="todo"] ul`);
             if (todoContainer) {
-                // [CHANGED] User requested Inverted Sort (Newest First) for Schedule
-                renderGroupedList(todoContainer, todoTasks, 'scheduled_at', 'desc', 'intro', 'cyan');
+                // [REVERTED] User confirmed Introduction (Schedule) was correct.
+                renderGroupedList(todoContainer, todoTasks, 'scheduled_at', 'asc', 'intro', 'cyan');
             }
 
             // Renderizar Done
             const doneContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"] ul`);
             if (doneContainer) {
-                renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'asc', 'intro', 'cyan');
+                // [CHANGED] User requested Inverted Sort (Newest First) for TASKS DONE
+                renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'desc', 'intro', 'cyan');
             }
         }
 
