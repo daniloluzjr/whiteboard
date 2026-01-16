@@ -738,7 +738,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderGroupedList(todoContainer, todoTasks, 'scheduled_at', 'asc', renderMode, groupColor);
 
                     const doneTasks = group.tasks.filter(t => t.status === 'done');
-                    renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'asc', renderMode, groupColor);
+                    // [CHANGED] Standardize DONE lists to be Newest First (Desc) for all schedule groups
+                    renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'desc', renderMode, groupColor);
                 } else {
                     // Standard Mode: Sort by Created/Completed Date DESC
                     const todoTasks = group.tasks.filter(t => t.status !== 'done');
