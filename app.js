@@ -207,7 +207,81 @@ document.addEventListener('DOMContentLoaded', () => {
             // console.log("Auto-refreshing tasks..."); // Less noise in console
             loadGroups();
             loadUsers();
+            checkHolidayReturns(); // NEW: Check for holiday returns
         }, 600000); // 10 Minutes (600000ms)
+
+        // NEW: Check for Holiday Returns (Run more frequently? Or just with auto-refresh)
+        // Since auto-refresh is 10 mins, maybe we run this check every 60 seconds independently?
+        // Let's add a separate interval for this to be more precise than 10 mins.
+        setInterval(() => {
+            checkHolidayReturns();
+        }, 60000); // Check every 1 minute
+
+        async function checkHolidayReturns() {
+            // Find "Carers on Holiday" group using cache or fetch? 
+            // We need fresh data. rely on `fetchGroups` inside or just use what we have?
+            // `checkHolidayReturns` runs logic. Ideally it needs the tasks. 
+            // We can fetch groups to be sure.
+            try {
+                // Helper to get fresh data silently
+                const response = await fetch(`${API_URL}/groups`);
+                if (!response.ok) return;
+                const groups = await response.json();
+
+                const holidayGroup = groups.find(g => g.name === 'Carers on Holiday');
+                if (!holidayGroup) return;
+
+                const now = new Date();
+                let hasUpdates = false;
+
+                const pendingTasks = holidayGroup.tasks.filter(t => t.status !== 'done');
+
+                for (const task of pendingTasks) {
+                    if (task.scheduled_at) {
+                        const returnDate = safeDate(task.scheduled_at);
+                        // If returnDate is valid and is in the PAST
+                        if (returnDate && !isNaN(returnDate) && returnDate <= now) {
+                            console.log(`Auto-completing holiday task: ${task.title}`);
+                            // Mark as done
+                            // We use a specific solution text to identify it was the system
+                            await updateTaskStatusAPI(task.id, 'done', 'Automatic Return');
+
+                            // Also set the completed_at date to NOW (which is the default if not sent, 
+                            // but updateTaskStatusAPI usually just sets status. 
+                            // Check updateTaskStatusAPI implementation... 
+                            // It takes status and solution. It DOES NOT set completed_at automatically on backend 
+                            // usually unless backend handles it. 
+                            // Let's use `updateTaskAPI` if `updateTaskStatusAPI` is too simple?
+                            // Actually `updateTaskStatusAPI` calls PATCH /tasks/:id with {status, solution}.
+                            // The Backend likely sets completed_at if status becomes done.
+                            // If not, we should send it.
+
+                            // Let's verify updateTaskStatusAPI... it just sends body.
+                            // To be safe, let's use `updateTaskAPI` to send completed_at too?
+                            // Or trust the backend.
+                            // Based on `completeTaskBtn` logic (line 1538), we manually send `completed_at`.
+
+                            const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
+                            await updateTaskAPI(task.id, {
+                                status: 'done',
+                                completed_at: mysqlDate,
+                                solution: 'Automatic Return'
+                            });
+
+                            hasUpdates = true;
+                        }
+                    }
+                }
+
+                if (hasUpdates) {
+                    loadGroups(); // Refresh UI to show moves
+                    showNotification('System: Carers marked as returned.', 'success');
+                }
+
+            } catch (err) {
+                console.error("Error checking holidays:", err);
+            }
+        }
 
         // --- Daily Auto-Logout at 8:30 AM ---
         // --- Daily Auto-Logout at 8:30 AM ---
@@ -754,8 +828,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Determine render mode
                     let renderMode = 'standard';
                     if (group.name.includes('Introduction')) renderMode = 'intro';
-                    else if (group.name === 'Coordinators' || group.name.includes('Admitted to Hospital') || group.name === 'Sick Carers') renderMode = 'compact';
-                    else if (group.name === 'Carers on Holiday') renderMode = 'holiday';
+                    else if (group.name === 'Coordinators' || group.name.includes('Admitted to Hospital')) renderMode = 'compact';
+                    else if (group.name === 'Carers on Holiday' || group.name === 'Sick Carers') renderMode = 'holiday';
                     // 'Carers to come in' remains standard for now unless requested otherwise, or maybe compact too? 
                     // User only specified Hospital and Sick Carers for now.
 
@@ -1020,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         activeGroupType = 'compact'; // Hospital
                     } else if (groupTitle.includes('sick carers')) {
                         activeGroupIsIntro = false;
-                        activeGroupType = 'compact'; // Sick Carers
+                        activeGroupType = 'holiday'; // Sick Carers now uses Holiday UI
                     } else if (groupTitle.includes('carers on holiday')) {
                         activeGroupIsIntro = false;
                         activeGroupType = 'holiday';
@@ -1347,6 +1421,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (currentTaskData.completed_by && allUsersCache[currentTaskData.completed_by]) {
                         completedByStr = ` by ${allUsersCache[currentTaskData.completed_by]}`;
+                    }
+
+                    // NEW: Override if System Automated
+                    if (currentTaskData.solution === 'Automatic Return') {
+                        completedByStr = ' - System Automated';
                     }
 
                     completionDateSpan.textContent = completedDateStr + completedByStr;
