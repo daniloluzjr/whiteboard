@@ -910,9 +910,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Standard text format
                     bottomRow.innerHTML = `Start: ${startDateStr} - Return: ${returnDateStr}`;
-                    if (obsText) {
-                        bottomRow.innerHTML += `<div style="font-style:italic; color:#777; margin-top:2px;">${obsText}</div>`;
-                    }
+                    // HIDDEN as per request: Observation text only visible in detail view
+                    // if (obsText) {
+                    //    bottomRow.innerHTML += `<div style="font-style:italic; color:#777; margin-top:2px;">${obsText}</div>`;
+                    // }
 
                 } else if (renderMode === 'intro') {
                     bottomRow.textContent = `Carer Name: ${task.description}`;
