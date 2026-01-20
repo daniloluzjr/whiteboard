@@ -860,7 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Title Container
             const titleContainer = document.createElement('div');
             // Check for intro/compact mode (Vertical layout)
-            if (renderMode === 'intro' || renderMode === 'compact') {
+            if (renderMode === 'intro' || renderMode === 'compact' || renderMode === 'holiday') {
                 titleContainer.style.cssText = "display:flex; flex-direction:column; width:100%;";
                 // Top Row (Time + Client)
                 const topRow = document.createElement('div');
@@ -878,14 +878,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 topRow.appendChild(dot);
 
                 const titleText = document.createElement('strong');
-                titleText.textContent = `${timeStr} - ${task.title}`; // Safe text assignment
+                if (renderMode === 'holiday') {
+                    titleText.textContent = task.title;
+                } else {
+                    titleText.textContent = `${timeStr} - ${task.title}`; // Safe text assignment
+                }
                 topRow.appendChild(titleText);
 
                 // Bottom Row (Caregiver / Description)
-                const bottomRow = document.createElement('span');
+                const bottomRow = document.createElement('div');
                 bottomRow.style.cssText = "font-size:0.9em; color:#555; margin-left:22px;";
 
-                if (renderMode === 'intro') {
+                if (renderMode === 'holiday') {
+                    // Parse Dates
+                    let rawDesc = task.description || '';
+                    let startDateStr = '??/??';
+                    let obsText = rawDesc;
+
+                    const startMatch = rawDesc.match(/^\[Start: (\d{4}-\d{2}-\d{2})\]\s*(.*)/s);
+                    if (startMatch) {
+                        const sDate = new Date(startMatch[1]);
+                        if (!isNaN(sDate)) startDateStr = sDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+                        obsText = startMatch[2];
+                    }
+
+                    let returnDateStr = '??/??';
+                    if (task.scheduled_at) {
+                        const rDate = safeDate(task.scheduled_at);
+                        if (rDate && !isNaN(rDate)) returnDateStr = rDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+                    }
+
+                    // Standard text format
+                    bottomRow.innerHTML = `Start: ${startDateStr} - Return: ${returnDateStr}`;
+                    if (obsText) {
+                        bottomRow.innerHTML += `<div style="font-style:italic; color:#777; margin-top:2px;">${obsText}</div>`;
+                    }
+
+                } else if (renderMode === 'intro') {
                     bottomRow.textContent = `Carer Name: ${task.description}`;
                 } else if (renderMode === 'compact') {
                     // Logic: Truncate description to 3-4 words + "..."
@@ -938,62 +967,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.appendChild(textSpan);
             }
 
-            // Holiday Mode (Name + Start/Return + Observation)
-            if (renderMode === 'holiday') {
-                // Reset content to build custom layout
-                li.innerHTML = '';
-                li.style.cssText = "display:flex; flex-direction:column; padding:8px;";
-                li.appendChild(dot); // Re-append dot? Maybe put it in top row.
-
-                // Parsing logic specific to View
-                // Data attributes already have the raw text.
-                // We need to parse dates from description if present.
-                // Format: "[Start: YYYY-MM-DD] Observation..."
-                let rawDesc = task.description || '';
-                let startDateStr = '??/??';
-                let obsText = rawDesc;
-
-                const startMatch = rawDesc.match(/^\[Start: (\d{4}-\d{2}-\d{2})\]\s*(.*)/s);
-                if (startMatch) {
-                    const sDate = new Date(startMatch[1]);
-                    if (!isNaN(sDate)) startDateStr = sDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-                    obsText = startMatch[2]; // The rest is observation
-                }
-
-                let returnDateStr = '??/??';
-                if (task.scheduled_at) {
-                    const rDate = safeDate(task.scheduled_at);
-                    if (rDate && !isNaN(rDate)) returnDateStr = rDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-                }
-
-                // Row 1: Name (Title)
-                const nameRow = document.createElement('div');
-                nameRow.style.fontWeight = 'bold';
-                nameRow.style.marginBottom = '4px';
-                nameRow.style.display = 'flex';
-                nameRow.style.alignItems = 'center';
-                nameRow.appendChild(dot.cloneNode(true));
-                nameRow.appendChild(document.createTextNode(task.title));
-                li.appendChild(nameRow);
-
-                // Row 2: Dates (Start -> Return)
-                const datesRow = document.createElement('div');
-                datesRow.style.fontSize = '0.9em';
-                datesRow.style.color = '#555';
-                datesRow.style.marginBottom = '4px';
-                datesRow.innerHTML = `🏖️ ${startDateStr} ➡ 🏠 ${returnDateStr}`;
-                li.appendChild(datesRow);
-
-                // Row 3: Observation
-                if (obsText) {
-                    const obsRow = document.createElement('div');
-                    obsRow.style.fontSize = '0.85em';
-                    obsRow.style.fontStyle = 'italic';
-                    obsRow.style.color = '#777';
-                    obsRow.innerText = obsText;
-                    li.appendChild(obsRow);
-                }
-            }
 
             return li;
         }
