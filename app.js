@@ -24,7 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'yellow': { text: '#856404', bg: 'rgba(255, 193, 7, 0.1)' },
             'purple': { text: '#3c1e70', bg: 'rgba(111, 66, 193, 0.1)' },
             'orange': { text: '#9e3f1b', bg: 'rgba(253, 126, 20, 0.1)' },
-            'pink': { text: '#901842', bg: 'rgba(232, 62, 140, 0.1)' }
+            'pink': { text: '#901842', bg: 'rgba(232, 62, 140, 0.1)' },
+            'indigo': { text: '#3c1e70', bg: 'rgba(102, 16, 242, 0.1)' },
+            'teal': { text: '#155724', bg: 'rgba(32, 201, 151, 0.1)' }
         };
 
         // --- Helper: Safe Date Parser ---
@@ -300,7 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Supervisors', selector: '[data-group="supervisors"]', color: 'green' },
                 { name: 'Log Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
                 { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' },
-                { name: 'Carers to come in', selector: '[data-group="carers-come-in"]', color: 'pink' }
+                { name: 'Carers to come in', selector: '[data-group="carers-come-in"]', color: 'pink' },
+                { name: 'Carers on Holiday', selector: '[data-group="holiday"]', color: 'indigo' },
+                { name: 'Extra To Do', selector: '[data-group="extra"]', color: 'teal' }
             ];
 
             for (const def of fixedDefs) {
@@ -539,6 +543,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 groups.find(g => g.name === 'Sick Carers Returned') ||
                 groups.find(g => g.name.toLowerCase().includes('returned sick carers'));
             const carersComeInGroup = groups.find(g => g.name === 'Carers to come in');
+            const holidayGroup = groups.find(g => g.name === 'Carers on Holiday');
+            const extraGroup = groups.find(g => g.name === 'Extra To Do');
 
             const fixedIds = [
                 coordGroup?.id,
@@ -547,7 +553,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 sheetsGroup?.id,
                 sickGroup?.id,
                 sickReturnedGroup?.id,
-                carersComeInGroup?.id
+                carersComeInGroup?.id,
+                holidayGroup?.id,
+                extraGroup?.id
             ].filter(id => id);
 
             // [FIX] Force Colors for Fixed Groups in Memory if missing
@@ -559,6 +567,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
             if (sickReturnedGroup) sickReturnedGroup.color = 'cyan';
             if (carersComeInGroup && !carersComeInGroup.color) carersComeInGroup.color = 'pink';
+            if (holidayGroup && !holidayGroup.color) holidayGroup.color = 'indigo';
+            if (extraGroup && !extraGroup.color) extraGroup.color = 'teal';
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
@@ -603,6 +613,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
                         renderFixedGroupTasks(group);
                         const hardcodedCards = document.querySelectorAll('[data-group="carers-come-in"]');
+                        hardcodedCards.forEach(card => card.dataset.group = group.id);
+
+                    } else if (lowerName === 'carers on holiday' || lowerName === 'carers returning from holiday') {
+                        console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
+                        renderFixedGroupTasks(group);
+                        const hardcodedCards = document.querySelectorAll('[data-group="holiday"]');
+                        hardcodedCards.forEach(card => card.dataset.group = group.id);
+
+                    } else if (lowerName === 'extra to do' || lowerName === 'extra done') {
+                        console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
+                        renderFixedGroupTasks(group);
+                        const hardcodedCards = document.querySelectorAll('[data-group="extra"]');
                         hardcodedCards.forEach(card => card.dataset.group = group.id);
 
                     } else if (
@@ -722,7 +744,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isScheduleGroup = group.name.includes('Introduction') ||
                     group.name === 'Sick Carers' ||
                     group.name === 'Coordinators' ||
-                    group.name === 'Carers to come in';
+                    group.name === 'Carers to come in' ||
+                    group.name === 'Carers on Holiday';
 
                 if (isScheduleGroup) {
                     // Schedule Mode: Sort by Scheduled Date ASC, Use Vertical Layout
@@ -732,6 +755,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     let renderMode = 'standard';
                     if (group.name.includes('Introduction')) renderMode = 'intro';
                     else if (group.name === 'Coordinators' || group.name.includes('Admitted to Hospital') || group.name === 'Sick Carers') renderMode = 'compact';
+                    else if (group.name === 'Carers on Holiday') renderMode = 'holiday';
                     // 'Carers to come in' remains standard for now unless requested otherwise, or maybe compact too? 
                     // User only specified Hospital and Sick Carers for now.
 
@@ -793,7 +817,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 group.name === 'Sheets Needed' ||
                 group.name === 'Sick Carers' ||
                 group.name === 'Sick Carers Returned' ||
-                group.name === 'Carers to come in';
+                group.name === 'Carers to come in' ||
+                group.name === 'Carers on Holiday' ||
+                group.name === 'Extra To Do';
 
             const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
             const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
@@ -912,6 +938,63 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.appendChild(textSpan);
             }
 
+            // Holiday Mode (Name + Start/Return + Observation)
+            if (renderMode === 'holiday') {
+                // Reset content to build custom layout
+                li.innerHTML = '';
+                li.style.cssText = "display:flex; flex-direction:column; padding:8px;";
+                li.appendChild(dot); // Re-append dot? Maybe put it in top row.
+
+                // Parsing logic specific to View
+                // Data attributes already have the raw text.
+                // We need to parse dates from description if present.
+                // Format: "[Start: YYYY-MM-DD] Observation..."
+                let rawDesc = task.description || '';
+                let startDateStr = '??/??';
+                let obsText = rawDesc;
+
+                const startMatch = rawDesc.match(/^\[Start: (\d{4}-\d{2}-\d{2})\]\s*(.*)/s);
+                if (startMatch) {
+                    const sDate = new Date(startMatch[1]);
+                    if (!isNaN(sDate)) startDateStr = sDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+                    obsText = startMatch[2]; // The rest is observation
+                }
+
+                let returnDateStr = '??/??';
+                if (task.scheduled_at) {
+                    const rDate = safeDate(task.scheduled_at);
+                    if (rDate && !isNaN(rDate)) returnDateStr = rDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+                }
+
+                // Row 1: Name (Title)
+                const nameRow = document.createElement('div');
+                nameRow.style.fontWeight = 'bold';
+                nameRow.style.marginBottom = '4px';
+                nameRow.style.display = 'flex';
+                nameRow.style.alignItems = 'center';
+                nameRow.appendChild(dot.cloneNode(true));
+                nameRow.appendChild(document.createTextNode(task.title));
+                li.appendChild(nameRow);
+
+                // Row 2: Dates (Start -> Return)
+                const datesRow = document.createElement('div');
+                datesRow.style.fontSize = '0.9em';
+                datesRow.style.color = '#555';
+                datesRow.style.marginBottom = '4px';
+                datesRow.innerHTML = `🏖️ ${startDateStr} ➡ 🏠 ${returnDateStr}`;
+                li.appendChild(datesRow);
+
+                // Row 3: Observation
+                if (obsText) {
+                    const obsRow = document.createElement('div');
+                    obsRow.style.fontSize = '0.85em';
+                    obsRow.style.fontStyle = 'italic';
+                    obsRow.style.color = '#777';
+                    obsRow.innerText = obsText;
+                    li.appendChild(obsRow);
+                }
+            }
+
             return li;
         }
 
@@ -964,13 +1047,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (groupTitle.includes('sick carers')) {
                         activeGroupIsIntro = false;
                         activeGroupType = 'compact'; // Sick Carers
+                    } else if (groupTitle.includes('carers on holiday')) {
+                        activeGroupIsIntro = false;
+                        activeGroupType = 'holiday';
                     } else {
                         activeGroupIsIntro = false;
                         activeGroupType = 'standard';
                     }
 
                     // New: Check if group supports schedule (Intro, Sick Carers, Admitted to Hospital)
-                    if (activeGroupIsIntro || groupTitle.includes('sick carers') || groupTitle.includes('admitted to hospital') || groupTitle.includes('carers to come in')) {
+                    if (activeGroupIsIntro ||
+                        groupTitle.includes('sick carers') ||
+                        groupTitle.includes('admitted to hospital') ||
+                        groupTitle.includes('carers to come in') ||
+                        groupTitle.includes('carers on holiday')) {
                         activeGroupHasSchedule = true;
                     } else {
                         activeGroupHasSchedule = false;
@@ -1166,10 +1256,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     taskTitleInput.placeholder = "Task Title";
                     taskTextInput.placeholder = "Task description...";
                 }
+
+                // --- Holiday Special Inputs ---
+                const startDateContainer = document.getElementById('start-date-container');
+                const startDateInput = document.getElementById('task-start-input');
+                const scheduleLabel = document.getElementById('schedule-label');
+
+                if (activeGroupType === 'holiday') {
+                    startDateContainer.classList.remove('hidden');
+                    startDateInput.value = ''; // Reset
+                    scheduleLabel.textContent = 'Return Date:';
+                    taskTitleInput.placeholder = "Carer Name";
+                    taskTextInput.placeholder = "Observation (e.g. Vacation details)";
+                } else {
+                    startDateContainer.classList.add('hidden');
+                    scheduleLabel.textContent = 'Scheduled Date & Time:';
+                }
+
             } else if (mode === 'view') {
                 taskModalTitle.textContent = 'Task Details';
                 taskTitleInput.value = currentTaskData.title;
-                taskTextInput.value = currentTaskData.description || '';
+
+                // --- HOLIDAY PARSING FOR VIEW ---
+                let viewText = currentTaskData.description || '';
+                const startDateContainer = document.getElementById('start-date-container');
+                const startDateInput = document.getElementById('task-start-input');
+                const scheduleLabel = document.getElementById('schedule-label');
+
+                // Detect if it's a Holiday task based on parsing? 
+                // Or use `activeGroupType`? 
+                // We don't have activeGroupType easy in 'view' unless we set it in click listener.
+                // We set activeGroupIsIntro, but not `activeGroupType`.
+                // Let's use the regex to define if we show start date fields.
+
+                const startMatch = viewText.match(/^\[Start: (\d{4}-\d{2}-\d{2})\]\s*(.*)/s);
+                if (startMatch) {
+                    startDateContainer.classList.remove('hidden');
+                    startDateInput.value = startMatch[1];
+                    viewText = startMatch[2]; // Show only observation
+                    scheduleLabel.textContent = 'Return Date:';
+                } else {
+                    startDateContainer.classList.add('hidden');
+                    scheduleLabel.textContent = 'Scheduled Date & Time:';
+                }
+
+                taskTextInput.value = viewText;
 
                 // --- VISIBILITY LOGIC ---
                 // Always show description/text input
@@ -1324,6 +1455,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         priority: priority
                     };
 
+                    // HOLIDAY SAVING LOGIC (UPDATE)
+                    const startDateContainer = document.getElementById('start-date-container');
+                    if (!startDateContainer.classList.contains('hidden')) {
+                        const sVal = document.getElementById('task-start-input').value;
+                        if (sVal) {
+                            updateData.description = `[Start: ${sVal}] ${text}`;
+                        }
+                    }
+
                     // Handle Schedule Update
                     const rawDate = document.getElementById('task-schedule-input').value;
                     if (rawDate && !document.getElementById('schedule-container').classList.contains('hidden')) {
@@ -1377,13 +1517,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         let formattedScheduledAt = null;
                         const rawDate = document.getElementById('task-schedule-input').value;
                         if (rawDate) {
+                            // If it's just a date (holiday return), append time? 
+                            // Input is datetime-local, so it has time.
                             formattedScheduledAt = rawDate.replace('T', ' ') + ':00';
+                        }
+
+                        // HOLIDAY SAVING LOGIC (CREATE)
+                        let finalDescription = text;
+                        if (activeGroupType === 'holiday') {
+                            const sVal = document.getElementById('task-start-input').value;
+                            if (sVal) {
+                                finalDescription = `[Start: ${sVal}] ${text}`;
+                            }
                         }
 
                         const newTask = await createTaskAPI({
                             group_id: activeGroupId,
                             title: title,
-                            description: text,
+                            description: finalDescription,
                             priority: priority,
                             status: 'todo',
                             scheduled_at: formattedScheduledAt

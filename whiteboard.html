@@ -155,6 +155,38 @@
                     <ul></ul>
                 </div>
 
+                <!-- Carers on Holiday (Indigo) -->
+                <div class="task-card non-deletable" data-group="holiday" data-type="todo" data-color="indigo">
+                    <div class="card-header">
+                        <h3>Carers on Holiday</h3>
+                        <button class="add-task-item-btn">+</button>
+                    </div>
+                    <ul></ul>
+                </div>
+
+                <div class="task-card non-deletable" data-group="holiday" data-type="done" data-color="indigo">
+                    <div class="card-header">
+                        <h3>Carers Returning from Holiday</h3>
+                    </div>
+                    <ul></ul>
+                </div>
+
+                <!-- Extra To Do (Teal) -->
+                <div class="task-card non-deletable" data-group="extra" data-type="todo" data-color="teal">
+                    <div class="card-header">
+                        <h3>Extra To Do</h3>
+                        <button class="add-task-item-btn">+</button>
+                    </div>
+                    <ul></ul>
+                </div>
+
+                <div class="task-card non-deletable" data-group="extra" data-type="done" data-color="teal">
+                    <div class="card-header">
+                        <h3>Extra Done</h3>
+                    </div>
+                    <ul></ul>
+                </div>
+
                 <!-- Dynamically added task cards will go here -->
             </section>
         </main>
@@ -199,8 +231,15 @@
             </div>
 
             <div id="schedule-container" class="hidden" style="margin-bottom: 15px;">
-                <label for="task-schedule-input"
-                    style="font-weight: bold; display: block; margin-bottom: 5px;">Scheduled Date & Time:</label>
+                <div id="start-date-container" class="hidden" style="margin-bottom: 10px;">
+                    <label for="task-start-input" style="font-weight: bold; display: block; margin-bottom: 5px;">Start
+                        Date (Holiday):</label>
+                    <input type="date" id="task-start-input"
+                        style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px;">
+                </div>
+
+                <label for="task-schedule-input" id="schedule-label"
+                    style="font-weight: bold; display: block; margin-bottom: 5px;">Scheduled Return Date:</label>
                 <input type="datetime-local" id="task-schedule-input"
                     style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px;">
             </div>
