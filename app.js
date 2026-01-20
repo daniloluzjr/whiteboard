@@ -229,46 +229,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 const groups = await response.json();
 
                 const holidayGroup = groups.find(g => g.name === 'Carers on Holiday');
-                if (!holidayGroup) return;
+                const sickGroup = groups.find(g => g.name === 'Sick Carers');
+
+                const groupsToCheck = [];
+                if (holidayGroup) groupsToCheck.push(holidayGroup);
+                if (sickGroup) groupsToCheck.push(sickGroup);
+
+                if (groupsToCheck.length === 0) return;
 
                 const now = new Date();
                 let hasUpdates = false;
 
-                const pendingTasks = holidayGroup.tasks.filter(t => t.status !== 'done');
+                for (const group of groupsToCheck) {
+                    const pendingTasks = group.tasks.filter(t => t.status !== 'done');
 
-                for (const task of pendingTasks) {
-                    if (task.scheduled_at) {
-                        const returnDate = safeDate(task.scheduled_at);
-                        // If returnDate is valid and is in the PAST
-                        if (returnDate && !isNaN(returnDate) && returnDate <= now) {
-                            console.log(`Auto-completing holiday task: ${task.title}`);
-                            // Mark as done
-                            // We use a specific solution text to identify it was the system
-                            await updateTaskStatusAPI(task.id, 'done', 'Automatic Return');
+                    for (const task of pendingTasks) {
+                        if (task.scheduled_at) {
+                            const returnDate = safeDate(task.scheduled_at);
+                            // If returnDate is valid and is in the PAST
+                            if (returnDate && !isNaN(returnDate) && returnDate <= now) {
+                                console.log(`Auto-completing holiday task: ${task.title}`);
+                                // Mark as done
+                                // We use a specific solution text to identify it was the system
+                                await updateTaskStatusAPI(task.id, 'done', 'Automatic Return');
 
-                            // Also set the completed_at date to NOW (which is the default if not sent, 
-                            // but updateTaskStatusAPI usually just sets status. 
-                            // Check updateTaskStatusAPI implementation... 
-                            // It takes status and solution. It DOES NOT set completed_at automatically on backend 
-                            // usually unless backend handles it. 
-                            // Let's use `updateTaskAPI` if `updateTaskStatusAPI` is too simple?
-                            // Actually `updateTaskStatusAPI` calls PATCH /tasks/:id with {status, solution}.
-                            // The Backend likely sets completed_at if status becomes done.
-                            // If not, we should send it.
+                                // Also set the completed_at date to NOW (which is the default if not sent, 
+                                // but updateTaskStatusAPI usually just sets status. 
+                                // Check updateTaskStatusAPI implementation... 
+                                // It takes status and solution. It DOES NOT set completed_at automatically on backend 
+                                // usually unless backend handles it. 
+                                // Let's use `updateTaskAPI` if `updateTaskStatusAPI` is too simple?
+                                // Actually `updateTaskStatusAPI` calls PATCH /tasks/:id with {status, solution}.
+                                // The Backend likely sets completed_at if status becomes done.
+                                // If not, we should send it.
 
-                            // Let's verify updateTaskStatusAPI... it just sends body.
-                            // To be safe, let's use `updateTaskAPI` to send completed_at too?
-                            // Or trust the backend.
-                            // Based on `completeTaskBtn` logic (line 1538), we manually send `completed_at`.
+                                // Let's verify updateTaskStatusAPI... it just sends body.
+                                // To be safe, let's use `updateTaskAPI` to send completed_at too?
+                                // Or trust the backend.
+                                // Based on `completeTaskBtn` logic (line 1538), we manually send `completed_at`.
 
-                            const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
-                            await updateTaskAPI(task.id, {
-                                status: 'done',
-                                completed_at: mysqlDate,
-                                solution: 'Automatic Return'
-                            });
+                                const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
+                                await updateTaskAPI(task.id, {
+                                    status: 'done',
+                                    completed_at: mysqlDate,
+                                    solution: 'Automatic Return'
+                                });
 
-                            hasUpdates = true;
+                                hasUpdates = true;
+                            }
                         }
                     }
                 }
