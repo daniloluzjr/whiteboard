@@ -222,11 +222,41 @@ async function runMigrations() {
             console.log("Migration: 'completed_by' column added.");
         }
 
+        // Check if 'activity_logs' table exists (Admin Log Reg)
+        const [tablesLogs] = await pool.query("SHOW TABLES LIKE 'activity_logs'");
+        if (tablesLogs.length === 0) {
+            console.log("Migration: Creating 'activity_logs' table...");
+            await pool.query(`
+                CREATE TABLE activity_logs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT,
+                    user_name VARCHAR(255),
+                    action VARCHAR(50),
+                    task_title VARCHAR(255),
+                    group_name VARCHAR(255),
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log("Migration: 'activity_logs' table created.");
+        }
+
     } catch (err) {
         console.error("Migration warning:", err.message);
     }
 }
 runMigrations();
+
+// --- Log Helper ---
+async function logActivity(userId, userName, action, taskTitle, groupName) {
+    try {
+        await pool.query(
+            'INSERT INTO activity_logs (user_id, user_name, action, task_title, group_name) VALUES (?, ?, ?, ?, ?)',
+            [userId, userName, action, taskTitle, groupName]
+        );
+    } catch (err) {
+        console.error("Failed to log activity:", err); // Non-blocking error
+    }
+}
 
 // --- Group Routes ---
 
@@ -293,6 +323,7 @@ app.patch('/api/groups/:id', authenticateToken, async (req, res) => {
 app.post('/api/tasks', authenticateToken, async (req, res) => {
     // User is guaranteed to be in req.user by middleware
     const created_by = req.user.id;
+    const user_name = req.user.name || 'Unknown';
 
     const { group_id, title, description, priority, status, scheduled_at } = req.body;
     try {
@@ -314,6 +345,15 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
             scheduled_at: scheduledDate,
             created_at: new Date()
         };
+
+        // --- Logging ---
+        // Fetch group name for the log
+        const [groups] = await pool.query('SELECT name FROM task_groups WHERE id = ?', [group_id]);
+        const group_name = groups.length > 0 ? groups[0].name : 'Unknown Group';
+
+        logActivity(created_by, user_name, 'CREATED', title, group_name);
+        // ---------------
+
         res.status(201).json(newTask);
     } catch (error) {
         console.error(error);
@@ -361,6 +401,25 @@ app.patch('/api/tasks/:id', authenticateToken, async (req, res) => {
 
     try {
         await pool.query(query, values);
+
+        // --- Logging Check ---
+        if (status === 'done') {
+            // Fetch task details for logging (we need title and group)
+            // We use a JOIN to get the Group Name in one go
+            const [taskDetails] = await pool.query(`
+                SELECT t.title, g.name as group_name 
+                FROM tasks t 
+                LEFT JOIN task_groups g ON t.group_id = g.id 
+                WHERE t.id = ?
+            `, [id]);
+
+            if (taskDetails.length > 0) {
+                const { title, group_name } = taskDetails[0];
+                logActivity(req.user.id, req.user.name || 'Unknown', 'COMPLETED', title, group_name || 'Unknown Group');
+            }
+        }
+        // ---------------------
+
         res.json({ message: 'Task updated successfully' });
     } catch (error) {
         console.error(error);
@@ -377,6 +436,19 @@ app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to delete task' });
+    }
+});
+
+// --- Logs Route ---
+// GET /api/logs - Fetch activity logs
+app.get('/api/logs', async (req, res) => {
+    try {
+        // Order by created_at DESC (Newest first)
+        const [logs] = await pool.query('SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 200');
+        res.json(logs);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch logs' });
     }
 });
 

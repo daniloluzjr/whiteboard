@@ -31,21 +31,20 @@
   </div>
 
   <div class="admin-section">
-    <h2>All Tasks</h2>
+    <h2>Activity Log (Log Reg)</h2>
     <table id="tasks-table" class="admin-table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Title</th>
-          <th>Status</th>
-          <th>Assigned To (Group)</th>
-          <th>Created By (Name)</th>
-          <th>Created At</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>User</th>
           <th>Action</th>
+          <th>Task</th>
+          <th>Group</th>
         </tr>
       </thead>
       <tbody>
-        <!-- Tasks here -->
+        <!-- Logs here -->
       </tbody>
     </table>
   </div>
@@ -55,6 +54,7 @@
 
     // Explicitly attach to window
     window.editUser = async function (id) {
+      // ... (existing editUser code)
       const user = window.allUsers ? window.allUsers.find(u => u.id == id) : null;
       const currentName = user ? user.name : '';
 
@@ -99,27 +99,11 @@
       }
     };
 
-    window.deleteTask = async function (id) {
-      console.log('Attempting to delete task:', id);
-      if (confirm('Are you certain you want to delete this task?')) {
-        try {
-          const res = await fetch(`${API_URL}/tasks/${id}`, { method: 'DELETE' });
-          if (res.ok) {
-            alert('Task deleted.');
-            loadData();
-          } else {
-            alert('Failed to delete task.');
-          }
-        } catch (e) {
-          alert('Error deleting task: ' + e.message);
-          console.error(e);
-        }
-      }
-    };
+    // Note: deleteTask is no longer needed in the UI for logs, but keeping function if needed theoretically 
+    // or we can remove the button from the Log table (Logs shouldn't be deleted easily).
 
     async function loadData() {
       let userMap = {};
-      let groupMap = {};
 
       // 1. Load Users & Build Map
       try {
@@ -146,45 +130,34 @@
         document.querySelector('#users-table tbody').innerHTML = userRows;
       } catch (e) { console.error("Error loading users:", e); }
 
-      // 2. Load Groups & Build Map
+      // 2. Load Activity Log
       try {
-        const resGroups = await fetch(`${API_URL}/groups`);
-        const groups = await resGroups.json();
+        const resLogs = await fetch(`${API_URL}/logs`); // NEW Endpoint
+        const logs = await resLogs.json();
 
-        groups.forEach(g => {
-          groupMap[g.id] = g.name;
-        });
-      } catch (e) { console.error("Error loading groups:", e); }
+        const logRows = logs.map(log => {
+          const dateObj = new Date(log.created_at);
+          const dateStr = dateObj.toLocaleDateString();
+          const timeStr = dateObj.toLocaleTimeString();
 
-      // 3. Load Tasks & Render with Maps
-      try {
-        const resTasks = await fetch(`${API_URL}/tasks`);
-        const tasks = await resTasks.json();
-
-        const taskRows = tasks.map(t => {
-          const creatorName = userMap[t.created_by] || `ID: ${t.created_by || '?'}`;
-          const groupName = groupMap[t.group_id] || `Group ${t.group_id}`;
+          // Style action
+          let actionStyle = '';
+          if (log.action === 'CREATED') actionStyle = 'color: #007bff; font-weight: bold;';
+          if (log.action === 'COMPLETED') actionStyle = 'color: #28a745; font-weight: bold;';
 
           return `
-                    <tr>
-                        <td>${t.id}</td>
-                        <td>${t.title}</td>
-                        <td>
-                            <span style="padding: 4px 8px; border-radius: 4px; background: ${t.status === 'done' ? '#d4edda' : '#fff3cd'}; color: ${t.status === 'done' ? '#155724' : '#856404'};">
-                                ${t.status}
-                            </span>
-                        </td>
-                        <td>${groupName}</td>
-                        <td>${creatorName}</td> 
-                        <td>${new Date(t.created_at).toLocaleString()}</td>
-                        <td>
-                            <button onclick="deleteTask('${t.id}')" class="btn-small-delete">Delete</button>
-                        </td>
-                    </tr>
-                `;
+                <tr>
+                    <td>${dateStr}</td>
+                    <td>${timeStr}</td>
+                    <td>${log.user_name || 'Unknown'}</td>
+                    <td style="${actionStyle}">${log.action}</td>
+                    <td>${log.task_title || '-'}</td>
+                    <td>${log.group_name || '-'}</td>
+                </tr>
+            `;
         }).join('');
-        document.querySelector('#tasks-table tbody').innerHTML = taskRows;
-      } catch (e) { console.error("Error loading tasks:", e); }
+        document.querySelector('#tasks-table tbody').innerHTML = logRows;
+      } catch (e) { console.error("Error loading logs:", e); }
     }
 
     // Auto load
