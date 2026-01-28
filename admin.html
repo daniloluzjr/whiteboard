@@ -137,8 +137,9 @@
 
         const logRows = logs.map(log => {
           const dateObj = new Date(log.created_at);
-          const dateStr = dateObj.toLocaleDateString();
-          const timeStr = dateObj.toLocaleTimeString();
+          // Use en-GB for DD/MM/YYYY format
+          const dateStr = dateObj.toLocaleDateString('en-GB');
+          const timeStr = dateObj.toLocaleTimeString('en-GB');
 
           // Style action
           let actionStyle = '';
