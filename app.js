@@ -1851,33 +1851,45 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-                const data = await response.json();
 
-                if (response.ok) {
-                    showNotification('Login successful! Redirecting...', 'success');
+                // Handle HTTP Errors
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({})); // Handle cases where JSON parse fails
 
-                    // --- Storage Logic ---
-                    if (rememberMe) {
-                        // Persist session + email
-                        localStorage.setItem('authToken', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.setItem('savedEmail', email); // Save email for next time
+                    if (response.status === 401) {
+                        showNotification('Invalid email or password.', 'error');
+                    } else if (response.status >= 500) {
+                        showNotification('Server error (Railway Limit/Outage). Please try again later.', 'error');
                     } else {
-                        // Session only + clear saved email
-                        sessionStorage.setItem('authToken', data.token);
-                        sessionStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.removeItem('savedEmail'); // Clear if they unchecked it
+                        showNotification(data.error || `Login failed (${response.status})`, 'error');
                     }
-
-                    setTimeout(() => {
-                        window.location.href = 'whiteboard.html';
-                    }, 1000);
-                } else {
-                    showNotification(data.error || 'Login failed', 'error');
+                    return; // Stop execution
                 }
+
+                // Success
+                const data = await response.json();
+                showNotification('Login successful! Redirecting...', 'success');
+
+                // --- Storage Logic ---
+                if (rememberMe) {
+                    // Persist session + email
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('savedEmail', email); // Save email for next time
+                } else {
+                    // Session only + clear saved email
+                    sessionStorage.setItem('authToken', data.token);
+                    sessionStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.removeItem('savedEmail'); // Clear if they unchecked it
+                }
+
+                setTimeout(() => {
+                    window.location.href = 'whiteboard.html';
+                }, 1000);
+
             } catch (error) {
                 console.error("Fetch error:", error);
-                showNotification('Error connecting to server.', 'error');
+                showNotification('Unable to connect to server. Check your internet or try again later.', 'error');
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
