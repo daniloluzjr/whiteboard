@@ -88,6 +88,10 @@ app.post('/api/login', async (req, res) => {
         }
         // Generate Token
         const token = jwt.sign({ id: user.id, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+
+        // Update last_login
+        await pool.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+
         res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
     } catch (error) {
         console.error(error);
@@ -100,7 +104,7 @@ app.post('/api/login', async (req, res) => {
 // GET /api/users - List all users (id, name, status)
 app.get('/api/users', async (req, res) => {
     try {
-        const [users] = await pool.query('SELECT id, name, email, status FROM users');
+        const [users] = await pool.query('SELECT id, name, email, status, last_login FROM users');
         res.json(users);
     } catch (error) {
         console.error(error);
@@ -238,6 +242,14 @@ async function runMigrations() {
                 )
             `);
             console.log("Migration: 'activity_logs' table created.");
+        }
+
+        // Check if 'last_login' column exists
+        const [columnsLastLogin] = await pool.query("SHOW COLUMNS FROM users LIKE 'last_login'");
+        if (columnsLastLogin.length === 0) {
+            console.log("Migration: Adding 'last_login' column to users table...");
+            await pool.query("ALTER TABLE users ADD COLUMN last_login DATETIME NULL");
+            console.log("Migration: 'last_login' column added.");
         }
 
     } catch (err) {

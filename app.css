@@ -115,6 +115,11 @@ body {
   background-color: #000000;
 }
 
+.user-offline {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
 /* Add Sticker Button */
 .add-sticker-container {
   margin-top: auto;

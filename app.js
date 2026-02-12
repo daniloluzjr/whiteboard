@@ -88,46 +88,135 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const currentUser = JSON.parse(localStorage.getItem('user'));
 
+            // Calculate Cutoff Time (Most recent 08:30 AM)
+            const now = new Date();
+            let cutoffTime = new Date();
+            cutoffTime.setHours(8, 30, 0, 0);
+
+            // If it's currently before 08:30 AM, the last reset was yesterday 08:30 AM
+            if (now < cutoffTime) {
+                cutoffTime.setDate(cutoffTime.getDate() - 1);
+            }
+
+            const onlineUsers = [];
+            const offlineUsers = [];
+
             users.forEach(user => {
                 // Populate cache
                 allUsersCache[user.id] = user.name || user.email.split('@')[0];
-                // Ensure capitalization for the fallback
                 if (!allUsersCache[user.id]) {
                     allUsersCache[user.id] = "Unknown User";
                 } else if (!user.name) {
                     allUsersCache[user.id] = allUsersCache[user.id].charAt(0).toUpperCase() + allUsersCache[user.id].slice(1);
                 }
 
+                // Determine Online/Offline status
+                // Logic: If user has logged in since cutoffTime, they are "Online" in the list
+                // OTHERWISE, they are "Offline".
+                // EXCEPTION: If the user explicitly sets their status to 'offline' (via popup), they stay offline?
+                // The request says: "For a person who does not relog after the reboot of 8:30, she is marked as offline until she relogs".
+                // "And the list of offline is a list with names of people who did not relog... names are light and dot is black".
+                // "until she relogs and the dot returns to green and she goes up to online list".
+
+                // So, rely on `last_login`.
+                // Note: user.last_login comes from DB as string or Date object depending on driver.
+                // It might be null if never logged in or new field.
+
+                let isOnline = false;
+                if (user.last_login) {
+                    const lastLoginDate = new Date(user.last_login);
+                    if (lastLoginDate >= cutoffTime) {
+                        isOnline = true;
+                    }
+                }
+
+                // Also, if the user is using the app NOW, their status might be 'free', 'busy', etc.
+                // But if they haven't logged in TODAY (since 8:30), we force them to appear offline visually 
+                // regardless of their DB status? 
+                // Yes, the request implies visual separation based on login time.
+                // However, we should probably treat them as valid Online users if they ARE active.
+                // The user's request is specific: "Users who don't relog... stay marked as offline".
+
+                if (isOnline) {
+                    onlineUsers.push(user);
+                } else {
+                    offlineUsers.push(user);
+                }
+            });
+
+            // Helper to render a user item
+            const renderUserItem = (user, isOfflineList = false) => {
                 const li = document.createElement('li');
-                // Use the registered name, or fallback to email prefix if missing
                 let displayName = user.name || user.email.split('@')[0];
-                // Ensure capitalization for the fallback
                 if (!user.name) {
                     displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
                 }
                 const isMe = currentUser && user.id === currentUser.id;
 
+                // If in Offline list, force black dot and specific style
+                // If in Online list, use actual status
+
+                let statusClass = isOfflineList ? 'status-offline' : `status-${user.status || 'free'}`;
+                let statusIcon = isOfflineList ? '' : (statusIcons[user.status] || ''); // Hide icon for offline? Or use Zzz?
+
+                // The user said: "dot marked as black... until she relogs and dot returns to green".
+                // So visually override the dot class.
+
+                if (isOfflineList) {
+                    li.classList.add('user-offline'); // For opacity/dimming
+                    // statusIcon = '💤'; // Optional: Add Zzz icon for offline?
+                }
+
                 li.innerHTML = `
-                    <span class="status-dot status-${user.status || 'free'}"></span>
-                    <span>${displayName} ${isMe ? '(You)' : ''} ${statusIcons[user.status] || ''}</span>
+                    <span class="status-dot ${statusClass}"></span>
+                    <span>${displayName} ${isMe ? '(You)' : ''} ${statusIcon}</span>
                 `;
 
                 if (isMe) {
                     li.style.cursor = 'pointer';
                     li.onclick = (e) => {
                         e.stopPropagation();
-                        // Position popup near the click (Relative to the NAME text, not the full row)
                         const textSpan = li.querySelector('span:last-child');
                         const rect = textSpan.getBoundingClientRect();
                         statusPopup.style.top = `${rect.top}px`;
-                        statusPopup.style.left = `${rect.right + 10}px`; // Add small gap
+                        statusPopup.style.left = `${rect.right + 10}px`;
                         statusPopup.classList.remove('hidden');
-                        currentDot = li.querySelector('.status-dot'); // Reference for local update
+                        currentDot = li.querySelector('.status-dot');
                     };
                 }
+                return li;
+            };
 
-                userStatusList.appendChild(li);
-            });
+            // Render Online Users
+            // Sort by name for now, or status? keeping simple
+            onlineUsers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+            if (onlineUsers.length > 0) {
+                // Header for Online? Or just list them? 
+                // Maybe a small separator if we have offline users too.
+                // Let's just list them.
+                onlineUsers.forEach(u => userStatusList.appendChild(renderUserItem(u, false)));
+            }
+
+            // Render Offline Users
+            if (offlineUsers.length > 0) {
+                offlineUsers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+                // Add specific Offline Header or Separator
+                if (onlineUsers.length > 0) {
+                    const separator = document.createElement('li');
+                    separator.innerHTML = '<hr style="margin: 10px 0; border: 0; border-top: 1px solid rgba(0,0,0,0.1);">';
+                    separator.style.pointerEvents = 'none'; // distinct
+                    userStatusList.appendChild(separator);
+
+                    const offlineHeader = document.createElement('li');
+                    offlineHeader.innerHTML = '<small style="color: #999; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">Offline</small>';
+                    offlineHeader.style.pointerEvents = 'none';
+                    userStatusList.appendChild(offlineHeader);
+                }
+
+                offlineUsers.forEach(u => userStatusList.appendChild(renderUserItem(u, true)));
+            }
         }
 
         // Popup Selection
