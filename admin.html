@@ -20,6 +20,7 @@
           <th>ID</th>
           <th>Name</th>
           <th>Email</th>
+          <th>Last Login</th>
           <th>Status</th>
           <th>Action</th>
         </tr>
@@ -115,11 +116,18 @@
           userMap[u.id] = u.name;
         });
 
-        const userRows = users.map(u => `
+        const userRows = users.map(u => {
+          let lastLoginStr = '-';
+          if (u.last_login) {
+            const d = new Date(u.last_login);
+            lastLoginStr = d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          }
+          return `
             <tr>
                 <td>${u.id}</td>
                 <td>${u.name || '-'}</td>
                 <td>${u.email}</td>
+                <td>${lastLoginStr}</td>
                 <td>${u.status || 'free'}</td>
                 <td>
                     <button onclick="editUser('${u.id}')" style="margin-right:5px; background-color: #007bff; color: white; padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer;">Edit</button>
