@@ -164,7 +164,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (isOfflineList) {
                     li.classList.add('user-offline'); // For opacity/dimming
-                    // statusIcon = '💤'; // Optional: Add Zzz icon for offline?
+
+                    // If manually offline but in offline list, use Zzz icon
+                    if (user.status === 'offline') {
+                        statusIcon = '💤';
+                    }
                 }
 
                 li.innerHTML = `
