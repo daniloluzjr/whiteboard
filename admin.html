@@ -134,7 +134,8 @@
                     <button onclick="deleteUser('${u.id}')" class="btn-small-delete">Delete</button>
                 </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
         document.querySelector('#users-table tbody').innerHTML = userRows;
       } catch (e) { console.error("Error loading users:", e); }
 
