@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     userStatusList.appendChild(separator);
 
                     const offlineHeader = document.createElement('li');
-                    offlineHeader.innerHTML = '<small style="color: #999; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">Offline</small>';
+                    offlineHeader.innerHTML = '<h4>OFFLINE</h4>';
                     offlineHeader.style.pointerEvents = 'none';
                     userStatusList.appendChild(offlineHeader);
                 }
