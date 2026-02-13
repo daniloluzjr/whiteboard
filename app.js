@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 if (isMe) {
-                    li.style.cursor = 'pointer';
+                    li.classList.add('current-user-item');
                     li.onclick = (e) => {
                         e.stopPropagation();
                         const textSpan = li.querySelector('span:last-child');
@@ -209,13 +209,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Add specific Offline Header or Separator
                 if (onlineUsers.length > 0) {
                     const separator = document.createElement('li');
-                    separator.innerHTML = '<hr style="margin: 10px 0; border: 0; border-top: 1px solid rgba(0,0,0,0.1);">';
-                    separator.style.pointerEvents = 'none'; // distinct
+                    separator.innerHTML = '<hr class="separator-hr">';
+                    separator.classList.add('separator-item'); // distinct
                     userStatusList.appendChild(separator);
 
                     const offlineHeader = document.createElement('li');
                     offlineHeader.innerHTML = '<h4>OFFLINE</h4>';
-                    offlineHeader.style.pointerEvents = 'none';
+                    offlineHeader.classList.add('offline-header-item');
                     userStatusList.appendChild(offlineHeader);
                 }
 
@@ -875,15 +875,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (dayStr !== lastDateStr) {
                         const header = document.createElement('li');
-                        // Glassmorphism styling as requested - More transparent, no border
-                        header.style.backgroundColor = 'rgba(255, 255, 255, 0.55)'; // More transparent
-                        header.style.border = 'none'; // No border
-                        header.style.backdropFilter = 'blur(4px)';
-                        header.style.fontWeight = 'bold';
-                        header.style.padding = '5px 10px';
-                        header.style.marginTop = '10px';
-                        header.style.borderRadius = '8px';
-                        header.style.color = '#555555'; // Darker grey for better contrast on white
+                        header.className = 'date-header';
                         header.innerHTML = `📅 ${dayStr.charAt(0).toUpperCase() + dayStr.slice(1)}`;
                         container.appendChild(header);
                         lastDateStr = dayStr;
@@ -1837,7 +1829,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.className = `notification-toast ${type}`;
         toast.innerHTML = `
             <span>${message}</span>
-            <button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.2rem;">&times;</button>
+            <button onclick="this.parentElement.remove()" class="notification-close-btn">&times;</button>
         `;
 
         container.appendChild(toast);

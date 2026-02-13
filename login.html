@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Whiteboard</title>
-    <link rel="icon" type="image/png" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" href="assets/favicon-32x32.png">
     <link rel="stylesheet" href="app.css?v=5">
 
 </head>
@@ -18,10 +18,9 @@
             <input type="email" id="login-email" placeholder="Email" required>
             <input type="password" id="login-password" placeholder="Password" required>
 
-            <div class="remember-me-container"
-                style="display: flex; align-items: center; margin-bottom: 20px; gap: 8px; justify-content: flex-start;">
-                <input type="checkbox" id="remember-me" style="width: auto; margin: 0;">
-                <label for="remember-me" style="cursor: pointer; font-size: 0.9rem; color: #555;">Remember me</label>
+            <div class="remember-me-container">
+                <input type="checkbox" id="remember-me" class="remember-me-checkbox">
+                <label for="remember-me" class="remember-me-label">Remember me</label>
             </div>
 
             <button type="submit">Login</button>

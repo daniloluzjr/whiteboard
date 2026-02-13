@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Whiteboard</title>
-    <link rel="icon" type="image/png" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" href="assets/favicon-32x32.png">
     <link rel="stylesheet" href="app.css?v=6">
 </head>
 
@@ -37,7 +37,7 @@
                 <input type="text" id="filter-input" placeholder="Search">
             </div>
 
-            <div class="logout-container" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <div class="logout-container logout-container-flex">
                 <button id="logout-btn" class="logout-btn">Logout</button>
 
                 <div class="sidebar-footer-link">
@@ -50,7 +50,7 @@
                         Need Support?
                     </a>
                     <a href="https://www.luxsolutions.tech/" target="_blank">
-                        <img src="logo.png" alt="Lux Solutions Logo" class="sidebar-logo">
+                        <img src="assets/logo.png" alt="Lux Solutions Logo" class="sidebar-logo">
                     </a>
                 </div>
             </div>
@@ -58,7 +58,7 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <header class="main-header" style="display: flex; align-items: center; gap: 15px;">
+            <header class="main-header main-header-flex">
                 <button id="mobile-menu-toggle" class="mobile-menu-btn hidden-desktop">☰</button>
                 <h1>Whiteboard</h1>
             </header>
@@ -67,7 +67,7 @@
                 <div class="task-card non-deletable" data-group="introduction" data-type="todo">
                     <div class="card-header">
                         <h3>Introduction (Schedule)</h3>
-                        <button class="add-task-item-btn" style="color: #17a2b8;">+</button>
+                        <button class="add-task-item-btn text-cyan">+</button>
                     </div>
                     <ul id="introduction-list"><!-- Tasks grouped by date will go here --></ul>
                 </div>
@@ -197,7 +197,7 @@
 
     <!-- Status Change Pop-up (hidden by default) -->
     <div id="status-popup" class="status-popup hidden">
-        <ul style="list-style:none; padding:0; margin:0;">
+        <ul class="status-popup-list">
             <li data-status="free"><span class="status-dot status-free"></span> Free ⚡</li>
             <li data-status="busy"><span class="status-dot status-busy"></span> Busy ⛔</li>
             <li data-status="meeting"><span class="status-dot status-meeting"></span> In a meeting 📅</li>
@@ -233,28 +233,24 @@
                         class="priority-color-dot yellow"></span></label>
             </div>
 
-            <div id="schedule-container" class="hidden" style="margin-bottom: 15px;">
-                <div id="start-date-container" class="hidden" style="margin-bottom: 10px;">
-                    <label for="task-start-input" style="font-weight: bold; display: block; margin-bottom: 5px;">Start
+            <div id="schedule-container" class="hidden schedule-container-margin">
+                <div id="start-date-container" class="hidden start-date-container-margin">
+                    <label for="task-start-input" class="form-label-bold">Start
                         Date (Holiday):</label>
-                    <input type="date" id="task-start-input"
-                        style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px;">
+                    <input type="date" id="task-start-input" class="form-input-full">
                 </div>
 
-                <label for="task-schedule-input" id="schedule-label"
-                    style="font-weight: bold; display: block; margin-bottom: 5px;">Scheduled Return Date:</label>
-                <input type="datetime-local" id="task-schedule-input"
-                    style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px;">
+                <label for="task-schedule-input" id="schedule-label" class="form-label-bold">Scheduled Return
+                    Date:</label>
+                <input type="datetime-local" id="task-schedule-input" class="form-input-full">
             </div>
 
             <input type="text" id="task-title-input" placeholder="Task Title (Client Name)" maxlength="100">
             <textarea id="task-text-input" placeholder="Task description..." maxlength="400"></textarea>
 
-            <label id="solution-label"
-                style="display:block; margin-top:10px; font-weight:bold; font-size:0.9rem; color:#555;"
-                class="hidden">Resolution:</label>
-            <textarea id="task-solution-input" placeholder="Resolution / What was done..." rows="3" class="hidden"
-                style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; resize: vertical; font-family: inherit; margin-bottom: 10px;"></textarea>
+            <label id="solution-label" class="hidden solution-label-style">Resolution:</label>
+            <textarea id="task-solution-input" placeholder="Resolution / What was done..." rows="3"
+                class="hidden task-solution-input-style"></textarea>
 
             <div id="task-dates" class="hidden">
                 <p><strong>Created on:</strong> <span id="creation-date"></span></p>

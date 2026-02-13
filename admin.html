@@ -130,7 +130,7 @@
                 <td>${lastLoginStr}</td>
                 <td>${u.status || 'free'}</td>
                 <td>
-                    <button onclick="editUser('${u.id}')" style="margin-right:5px; background-color: #007bff; color: white; padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer;">Edit</button>
+                    <button onclick="editUser('${u.id}')" class="btn-edit-user">Edit</button>
                     <button onclick="deleteUser('${u.id}')" class="btn-small-delete">Delete</button>
                 </td>
             </tr>
@@ -150,17 +150,16 @@
           const dateStr = dateObj.toLocaleDateString('en-GB');
           const timeStr = dateObj.toLocaleTimeString('en-GB');
 
-          // Style action
-          let actionStyle = '';
-          if (log.action === 'CREATED') actionStyle = 'color: #007bff; font-weight: bold;';
-          if (log.action === 'COMPLETED') actionStyle = 'color: #28a745; font-weight: bold;';
+          let actionClass = '';
+          if (log.action === 'CREATED') actionClass = 'action-created';
+          if (log.action === 'COMPLETED') actionClass = 'action-completed';
 
           return `
                 <tr>
                     <td>${dateStr}</td>
                     <td>${timeStr}</td>
                     <td>${log.user_name || 'Unknown'}</td>
-                    <td style="${actionStyle}">${log.action}</td>
+                    <td class="${actionClass}">${log.action}</td>
                     <td>${log.task_title || '-'}</td>
                     <td>${log.group_name || '-'}</td>
                 </tr>
