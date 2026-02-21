@@ -941,6 +941,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // --- Logout Implementation ---
+        function performLogout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
         // --- Logout Logic ---
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
@@ -1802,10 +1811,89 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+        async function renderGroup(group) {
+            const todoCard = createCardElement(group, 'todo');
+            const doneCard = createCardElement(group, 'done');
+            tasksGrid.appendChild(todoCard);
+            tasksGrid.appendChild(doneCard);
+
+            const todoTasks = group.tasks.filter(t => t.status !== 'done');
+            const doneTasks = group.tasks.filter(t => t.status === 'done');
+
+            renderGroupedList(todoCard.querySelector('ul'), todoTasks, 'created_at', 'desc', 'standard', group.color);
+            renderGroupedList(doneCard.querySelector('ul'), doneTasks, 'completed_at', 'desc', 'standard', group.color);
+        }
+
+        function createCardElement(group, type) {
+            const div = document.createElement('div');
+            div.className = 'task-card';
+            div.dataset.group = group.id;
+            div.dataset.type = type;
+            div.dataset.color = group.color;
+
+            const titlePrefix = type === 'todo' ? 'To Do' : 'Tasks done';
+            const deleteBtnHTML = type === 'todo' ? '<button class="delete-sticker-btn">&times;</button>' : '';
+            const addTaskBtnHTML = type === 'todo' ? '<button class="add-task-item-btn">+</button>' : '';
+
+            div.innerHTML = `
+                ${deleteBtnHTML}
+                <div class="card-header">
+                    <h3>${titlePrefix} - ${group.name}</h3>
+                    ${addTaskBtnHTML}
+                </div>
+                <ul></ul>
+            `;
+            return div;
+        }
+
+        async function renameGroupAPI(id, name) {
+            try {
+                const response = await fetch(`${API_URL}/groups/${id}`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ name })
+                });
+                return response.ok;
+            } catch (error) {
+                console.error("API Error (renameGroup):", error);
+                return false;
+            }
+        }
+
         // --- INITIALIZATION ---
+        async function setupFixedGroups() {
+            // These groups MUST exist for the whiteboard to work correctly
+            const mandatory = [
+                { name: 'Coordinators', color: 'pink' },
+                { name: 'Supervisors', color: 'green' },
+                { name: 'Introduction', color: 'cyan' },
+                { name: 'Introduction (Schedule)', color: 'cyan' },
+                { name: 'Log Sheets Needed', color: 'purple' },
+                { name: 'Sick Carers', color: 'orange' },
+                { name: 'Admitted to Hospital', color: 'pink' },
+                { name: 'Carers on Holiday', color: 'indigo' },
+                { name: 'Extra To Do', color: 'teal' }
+            ];
+
+            const existing = await fetchGroups();
+            for (const group of mandatory) {
+                const found = existing.find(g => g.name === group.name);
+                if (!found) {
+                    console.log(`Creating missing mandatory group: ${group.name}`);
+                    await createGroupAPI(group.name, group.color);
+                }
+            }
+        }
+
+        function initializeBoard() {
+            console.log("Whiteboard Initialized.");
+            // Any specific startup logic for the grid can go here
+        }
+
         // --- INITIALIZATION ---
         (async () => {
             try {
+                initializeBoard();
                 await setupFixedGroups();
                 await loadGroups();
                 await loadUsers(); // Ensure users load too
@@ -1983,4 +2071,119 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- API CORE ---
+    function getAuthHeaders() {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+    }
+
+    async function fetchGroups() {
+        try {
+            const response = await fetch(`${API_URL}/groups`, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Failed to fetch groups');
+            return await response.json();
+        } catch (error) {
+            console.error("API Error (fetchGroups):", error);
+            return [];
+        }
+    }
+
+    async function fetchUsers() {
+        try {
+            const response = await fetch(`${API_URL}/users`, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Failed to fetch users');
+            return await response.json();
+        } catch (error) {
+            console.error("API Error (fetchUsers):", error);
+            return [];
+        }
+    }
+
+    async function createGroupAPI(name, color) {
+        try {
+            const response = await fetch(`${API_URL}/groups`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ name, color })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error("API Error (createGroup):", error);
+        }
+    }
+
+    async function deleteGroupAPI(id) {
+        try {
+            await fetch(`${API_URL}/groups/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+        } catch (error) {
+            console.error("API Error (deleteGroup):", error);
+        }
+    }
+
+    async function updateUserStatusAPI(status) {
+        try {
+            await fetch(`${API_URL}/users/status`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ status })
+            });
+        } catch (error) {
+            console.error("API Error (updateStatus):", error);
+        }
+    }
+
+    async function createTaskAPI(taskData) {
+        try {
+            const response = await fetch(`${API_URL}/tasks`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(taskData)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error("API Error (createTask):", error);
+        }
+    }
+
+    async function updateTaskAPI(taskId, taskData) {
+        try {
+            await fetch(`${API_URL}/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(taskData)
+            });
+        } catch (error) {
+            console.error("API Error (updateTask):", error);
+        }
+    }
+
+    async function deleteTaskAPI(taskId) {
+        try {
+            await fetch(`${API_URL}/tasks/${taskId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+        } catch (error) {
+            console.error("API Error (deleteTask):", error);
+        }
+    }
+
+    async function completeTaskAPI(taskId, solution = '') {
+        try {
+            const response = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ solution })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error("API Error (completeTask):", error);
+        }
+    }
 });
