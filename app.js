@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update this URL if your backend is hosted elsewhere
     // If you are using Vercel, this won't work for WebSocket (requires serverless solution like Pusher). 
     // But since you have a Node server (Railway/Heroku/Render), this is fine.
-    const API_URL = 'https://web-production-0f66c.up.railway.app/api';
+    const API_URL = 'https://web-production-b230e.up.railway.app/api';
     // const API_URL = '/api'; // Reverted: Relative path only works if served from same origin
 
     // --- PAGE ROUTER ---
@@ -481,43 +481,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Extra To Do', selector: '[data-group="extra"]', color: 'teal' }
             ];
 
-            // CLEANUP: Automated merging for duplicate groups from previous versions (TODOWEB1 style)
-            const cleanUpDefs = [
-                { old: 'To Do - Coordinators', main: 'Coordinators' },
-                { old: 'Tasks done - Coordinators', main: 'Coordinators' },
-                { old: 'To Do - Supervisors', main: 'Supervisors' },
-                { old: 'Tasks done - Supervisors', main: 'Supervisors' },
-                { old: 'To Do - Log Sheets Needed', main: 'Log Sheets Needed' },
-                { old: 'Tasks done - Log Sheets Needed', main: 'Log Sheets Needed' },
-                { old: 'Carers to come in', action: 'delete' },
-                { old: 'Done - Carers to come in', action: 'delete' }
-            ];
-
-            for (const clean of cleanUpDefs) {
-                const oldG = groups.find(g => g.name === clean.old);
-                if (oldG) {
-                    if (clean.action === 'delete') {
-                        console.log(`Deleting unwanted group: ${clean.old}`);
-                        await deleteGroupAPI(oldG.id);
-                    } else {
-                        const mainG = groups.find(g => g.name === clean.main);
-                        if (mainG && mainG.id !== oldG.id) {
-                            console.log(`Merging ${clean.old} into ${clean.main}`);
-                            // Fetch full group with tasks if not present? groups from fetchGroups should have tasks? 
-                            // Actually loadGroups fetches them with tasks often.
-                            // But here we might not have tasks array. Let's assume they might.
-                            // If they are separate in DB, we'll need to move tasks.
-                            // I'll add a helper to move tasks if I can.
-                            await deleteGroupAPI(oldG.id); // For now just delete to clean UI as requested.
-                            // Normally we would merge tasks, but user said "delete" and it's a new instance.
-                        } else if (!mainG) {
-                            // If main doesn't exist, just rename this one?
-                            await renameGroupAPI(oldG.id, clean.main);
-                        }
-                    }
-                }
-            }
-
             for (const def of fixedDefs) {
                 // Approximate match for Intro to avoid creating duplicates if one exists
                 let dbGroup = groups.find(g => g.name === def.name);
@@ -764,20 +727,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 sheetsGroup?.id,
                 sickGroup?.id,
                 sickReturnedGroup?.id,
-                carersComeInGroup?.id,
                 holidayGroup?.id,
                 extraGroup?.id
             ].filter(id => id);
 
-            // [FIX] Force Colors for Fixed Groups in Memory if missing (or override as requested)
-            if (coordGroup) coordGroup.color = 'pink'; // User requested PINK for Coordinators
+            // [FIX] Force Colors for Fixed Groups in Memory if missing
+            if (coordGroup && !coordGroup.color) coordGroup.color = 'pink';
             if (superGroup && !superGroup.color) superGroup.color = 'green';
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
             // User requested BLUE (Cyan) for Sick Carers and Returned
             if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
             if (sickReturnedGroup) sickReturnedGroup.color = 'cyan';
-            if (carersComeInGroup && !carersComeInGroup.color) carersComeInGroup.color = 'pink';
             if (holidayGroup && !holidayGroup.color) holidayGroup.color = 'indigo';
             if (extraGroup && !extraGroup.color) extraGroup.color = 'teal';
 
@@ -818,12 +779,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Bind to correct DOM element
                         let selector = lowerName.includes('returned') ? '[data-group="sick-carers-returned"]' : '[data-group="sick-carers"]';
                         const hardcodedCards = document.querySelectorAll(selector);
-                        hardcodedCards.forEach(card => card.dataset.group = group.id);
-
-                    } else if (lowerName === 'carers to come in' || lowerName === 'done - carers to come in') {
-                        console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
-                        renderFixedGroupTasks(group);
-                        const hardcodedCards = document.querySelectorAll('[data-group="carers-come-in"]');
                         hardcodedCards.forEach(card => card.dataset.group = group.id);
 
                     } else if (lowerName === 'carers on holiday' || lowerName === 'carers returning from holiday') {
@@ -1020,7 +975,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 group.name === 'Sheets Needed' ||
                 group.name === 'Sick Carers' ||
                 group.name === 'Sick Carers Returned' ||
-                group.name === 'Carers to come in' ||
                 group.name === 'Carers on Holiday' ||
                 group.name === 'Extra To Do';
 

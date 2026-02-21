@@ -193,46 +193,7 @@ const pool = mysql.createPool(process.env.DATABASE_URL || dbConfig);
 // --- Setup / Migration Helper ---
 async function runMigrations() {
     try {
-        // --- Core Table Creation ---
-        console.log("Migration: Checking core tables...");
-        
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS task_groups (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                color VARCHAR(50) DEFAULT 'blue',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                status VARCHAR(50) DEFAULT 'free',
-                last_login DATETIME NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS tasks (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                group_id INT,
-                title VARCHAR(255) NOT NULL,
-                description TEXT,
-                priority ENUM('red', 'orange', 'yellow') DEFAULT 'yellow',
-                status ENUM('todo', 'done') DEFAULT 'todo',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                completed_at DATETIME,
-                FOREIGN KEY (group_id) REFERENCES task_groups(id) ON DELETE CASCADE
-            )
-        `);
-        console.log("Migration: Core tables verified.");
-
-        // --- Column-level Migrations ---
+        // Check if 'solution' column exists
         const [columns] = await pool.query("SHOW COLUMNS FROM tasks LIKE 'solution'");
         if (columns.length === 0) {
             console.log("Migration: Adding 'solution' column to tasks table...");
@@ -289,6 +250,21 @@ async function runMigrations() {
             console.log("Migration: Adding 'last_login' column to users table...");
             await pool.query("ALTER TABLE users ADD COLUMN last_login DATETIME NULL");
             console.log("Migration: 'last_login' column added.");
+        }
+
+        // --- One-time Cleanup for Glasnevin Whiteboard ---
+        try {
+            const idsToDelete = [75, 76, 77, 67, 68, 79];
+            const [cleanupCheck] = await pool.query("SELECT id FROM task_groups WHERE id IN (?)", [idsToDelete]);
+            if (cleanupCheck.length > 0) {
+                console.log("Migration: Glasnevin Cleanup - Removing duplicated/unused groups...");
+                await pool.query('DELETE FROM tasks WHERE group_id IN (?)', [idsToDelete]);
+                await pool.query('DELETE FROM task_groups WHERE id IN (?)', [idsToDelete]);
+                await pool.query('UPDATE task_groups SET color = "pink" WHERE id = 4');
+                console.log("Migration: Glasnevin Cleanup - Done.");
+            }
+        } catch (cleanupErr) {
+            console.warn("Migration: Cleanup check failed or already done:", cleanupErr.message);
         }
 
     } catch (err) {
