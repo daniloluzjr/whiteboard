@@ -721,6 +721,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const holidayGroup = groups.find(g => g.name === 'Carers on Holiday');
             const extraGroup = groups.find(g => g.name === 'Extra To Do');
 
+            // [NEW] CRITICAL: Associate Numeric IDs to Hardcoded Cards BEFORE rendering
+            if (hospitalGroup) document.querySelectorAll('[data-group="hospital"]').forEach(c => c.dataset.group = hospitalGroup.id);
+            if (coordGroup) document.querySelectorAll('[data-group="coordinators"]').forEach(c => c.dataset.group = coordGroup.id);
+            if (superGroup) document.querySelectorAll('[data-group="supervisors"]').forEach(c => c.dataset.group = superGroup.id);
+            if (introGroup) document.querySelectorAll('[data-group="introduction"]').forEach(c => c.dataset.group = introGroup.id);
+            if (sheetsGroup) document.querySelectorAll('[data-group="sheets-needed"]').forEach(c => c.dataset.group = sheetsGroup.id);
+            if (sickGroup) document.querySelectorAll('[data-group="sick-carers"]').forEach(c => c.dataset.group = sickGroup.id);
+            if (holidayGroup) document.querySelectorAll('[data-group="holiday"]').forEach(c => c.dataset.group = holidayGroup.id);
+            if (extraGroup) document.querySelectorAll('[data-group="extra"]').forEach(c => c.dataset.group = extraGroup.id);
+
             const fixedIds = [
                 coordGroup?.id,
                 hospitalGroup?.id,
@@ -735,11 +745,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // [FIX] Force Colors for Fixed Groups in Memory if missing
             if (coordGroup && !coordGroup.color) coordGroup.color = 'pink';
-            if (hospitalGroup && !hospitalGroup.color) hospitalGroup.color = 'cyan'; // Hospital standard color
+            if (hospitalGroup && !hospitalGroup.color) hospitalGroup.color = 'cyan';
             if (superGroup && !superGroup.color) superGroup.color = 'green';
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
-            // User requested BLUE (Cyan) for Sick Carers and Returned
             if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
             if (sickReturnedGroup) sickReturnedGroup.color = 'cyan';
             if (holidayGroup && !holidayGroup.color) holidayGroup.color = 'indigo';
@@ -791,22 +800,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         hardcodedCards.forEach(card => card.dataset.group = group.id);
 
                     } else if (lowerName === 'admitted to hospital' || lowerName === 'returned from hospital' || lowerName === 'hospital') {
-                        console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
                         renderFixedGroupTasks(group);
-                        const hardcodedCards = document.querySelectorAll('[data-group="hospital"]');
-                        hardcodedCards.forEach(card => card.dataset.group = group.id);
-
                     } else if (lowerName === 'coordinators') {
-                        console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
                         renderFixedGroupTasks(group);
-                        const hardcodedCards = document.querySelectorAll('[data-group="coordinators"]');
-                        hardcodedCards.forEach(card => card.dataset.group = group.id);
-
                     } else if (lowerName === 'extra to do' || lowerName === 'extra done') {
-                        console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
                         renderFixedGroupTasks(group);
-                        const hardcodedCards = document.querySelectorAll('[data-group="extra"]');
-                        hardcodedCards.forEach(card => card.dataset.group = group.id);
 
                     } else if (
                         group.name === 'Carer Sick' ||
