@@ -745,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // [FIX] Force Colors for Fixed Groups in Memory if missing
             if (coordGroup && !coordGroup.color) coordGroup.color = 'pink';
-            if (hospitalGroup && !hospitalGroup.color) hospitalGroup.color = 'cyan';
+            if (hospitalGroup && !hospitalGroup.color) hospitalGroup.color = 'pink'; // Hospital now pink as requested
             if (superGroup && !superGroup.color) superGroup.color = 'green';
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
