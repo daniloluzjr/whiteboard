@@ -254,17 +254,41 @@ async function runMigrations() {
 
         // --- One-time Cleanup for Glasnevin Whiteboard ---
         try {
-            const idsToDelete = [75, 76, 77, 67, 68, 79];
-            const [cleanupCheck] = await pool.query("SELECT id FROM task_groups WHERE id IN (?)", [idsToDelete]);
-            if (cleanupCheck.length > 0) {
-                console.log("Migration: Glasnevin Cleanup - Removing duplicated/unused groups...");
-                await pool.query('DELETE FROM tasks WHERE group_id IN (?)', [idsToDelete]);
-                await pool.query('DELETE FROM task_groups WHERE id IN (?)', [idsToDelete]);
-                await pool.query('UPDATE task_groups SET color = "pink" WHERE id = 4');
-                console.log("Migration: Glasnevin Cleanup - Done.");
+            // 1. Rename ID 4 back to original name (Admitted to Hospital)
+            await pool.query("UPDATE task_groups SET name = 'Admitted to Hospital' WHERE id = 4");
+
+            // 2. Ensure "Coordinators" group exists as a NEW group
+            const [coordCheck] = await pool.query("SELECT id FROM task_groups WHERE name = 'Coordinators'");
+            if (coordCheck.length === 0) {
+                console.log("Migration: Creating new 'Coordinators' group...");
+                await pool.query("INSERT INTO task_groups (name, color) VALUES ('Coordinators', 'pink')");
+            } else {
+                await pool.query("UPDATE task_groups SET color = 'pink' WHERE name = 'Coordinators'");
             }
+
+            // 3. Delete duplicated groups (Introduction, Sick Carers, etc.)
+            // We keep the lowest ID for each name and delete others.
+            const groupsToClean = ['Introduction', 'Introduction (Schedule)', 'Sick Carers', 'Carers on Holiday', 'Extra To Do', 'Log Sheets Needed'];
+            for (const gName of groupsToClean) {
+                const [allG] = await pool.query("SELECT id FROM task_groups WHERE name = ? ORDER BY id ASC", [gName]);
+                if (allG.length > 1) {
+                    const keepId = allG[0].id;
+                    const idsToDelete = allG.slice(1).map(g => g.id);
+                    console.log(`Migration: Cleaning duplicates for ${gName}. Keeping ${keepId}, deleting ${idsToDelete}`);
+
+                    // Move tasks to the kept group before deleting
+                    await pool.query("UPDATE tasks SET group_id = ? WHERE group_id IN (?)", [keepId, idsToDelete]);
+                    await pool.query("DELETE FROM task_groups WHERE id IN (?)", [idsToDelete]);
+                }
+            }
+
+            // 4. Also delete old unused IDs from previous attempts
+            const oldIds = [75, 76, 77, 67, 68, 79];
+            await pool.query('DELETE FROM task_groups WHERE id IN (?)', [oldIds]);
+
+            console.log("Migration: Glasnevin Comprehensive Cleanup - Done.");
         } catch (cleanupErr) {
-            console.warn("Migration: Cleanup check failed or already done:", cleanupErr.message);
+            console.warn("Migration: Cleanup check failed:", cleanupErr.message);
         }
 
     } catch (err) {
