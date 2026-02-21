@@ -1811,86 +1811,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-        async function renderGroup(group) {
-            const todoCard = createCardElement(group, 'todo');
-            const doneCard = createCardElement(group, 'done');
-            tasksGrid.appendChild(todoCard);
-            tasksGrid.appendChild(doneCard);
 
-            const todoTasks = group.tasks.filter(t => t.status !== 'done');
-            const doneTasks = group.tasks.filter(t => t.status === 'done');
-
-            renderGroupedList(todoCard.querySelector('ul'), todoTasks, 'created_at', 'desc', 'standard', group.color);
-            renderGroupedList(doneCard.querySelector('ul'), doneTasks, 'completed_at', 'desc', 'standard', group.color);
-        }
-
-        function createCardElement(group, type) {
-            const div = document.createElement('div');
-            div.className = 'task-card';
-            div.dataset.group = group.id;
-            div.dataset.type = type;
-            div.dataset.color = group.color;
-
-            const titlePrefix = type === 'todo' ? 'To Do' : 'Tasks done';
-            const deleteBtnHTML = type === 'todo' ? '<button class="delete-sticker-btn">&times;</button>' : '';
-            const addTaskBtnHTML = type === 'todo' ? '<button class="add-task-item-btn">+</button>' : '';
-
-            div.innerHTML = `
-                ${deleteBtnHTML}
-                <div class="card-header">
-                    <h3>${titlePrefix} - ${group.name}</h3>
-                    ${addTaskBtnHTML}
-                </div>
-                <ul></ul>
-            `;
-            return div;
-        }
-
-        async function renameGroupAPI(id, name) {
-            try {
-                const response = await fetch(`${API_URL}/groups/${id}`, {
-                    method: 'PUT',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({ name })
-                });
-                return response.ok;
-            } catch (error) {
-                console.error("API Error (renameGroup):", error);
-                return false;
-            }
-        }
 
         // --- INITIALIZATION ---
-        async function setupFixedGroups() {
-            // These groups MUST exist for the whiteboard to work correctly
-            const mandatory = [
-                { name: 'Coordinators', color: 'pink' },
-                { name: 'Supervisors', color: 'green' },
-                { name: 'Introduction', color: 'cyan' },
-                { name: 'Introduction (Schedule)', color: 'cyan' },
-                { name: 'Log Sheets Needed', color: 'purple' },
-                { name: 'Sick Carers', color: 'orange' },
-                { name: 'Admitted to Hospital', color: 'pink' },
-                { name: 'Carers on Holiday', color: 'indigo' },
-                { name: 'Extra To Do', color: 'teal' }
-            ];
 
-            const existing = await fetchGroups();
-            for (const group of mandatory) {
-                const found = existing.find(g => g.name === group.name);
-                if (!found) {
-                    console.log(`Creating missing mandatory group: ${group.name}`);
-                    await createGroupAPI(group.name, group.color);
-                }
-            }
-        }
-
-        function initializeBoard() {
-            console.log("Whiteboard Initialized.");
-            // Any specific startup logic for the grid can go here
-        }
-
-        // --- INITIALIZATION ---
         (async () => {
             try {
                 initializeBoard();
