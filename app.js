@@ -1416,10 +1416,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     startDateInput.value = ''; // Reset
                     scheduleLabel.textContent = 'Return Date:';
                     taskTitleInput.placeholder = "Carer Name";
-                    taskTextInput.placeholder = "Observation (e.g. Vacation details)";
+                    taskTextInput.placeholder = "Observation (e.g. Details)";
                 } else {
                     startDateContainer.classList.add('hidden');
-                    scheduleLabel.textContent = 'Scheduled Date & Time:';
+                    scheduleLabel.textContent = 'Date & Time:';
                 }
 
             } else if (mode === 'view') {
@@ -1446,7 +1446,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     scheduleLabel.textContent = 'Return Date:';
                 } else {
                     startDateContainer.classList.add('hidden');
-                    scheduleLabel.textContent = 'Scheduled Date & Time:';
+                    scheduleLabel.textContent = 'Date & Time:';
                 }
 
                 taskTextInput.value = viewText;
