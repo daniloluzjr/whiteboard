@@ -1194,9 +1194,10 @@ body {
   font-size: 1.2rem;
 }
 
-/* Card-specific hover colors */
-.task-card[data-group="introduction"] .add-task-item-btn:hover {
+/* Consolidated card-specific hover colors with high specificity */
+.task-card[data-group="introduction"] .card-header .add-task-item-btn:hover {
   color: #17a2b8 !important;
+  opacity: 1 !important;
 }
 
 .task-card[data-group="coordinators"] .add-task-item-btn:hover {
@@ -1238,10 +1239,4 @@ body {
 
 .task-card[data-color="teal"] .add-task-item-btn:hover {
   color: #20c997 !important;
-}
-
-/* Force specific hover color for introduction to avoid any ambiguity */
-.task-card[data-group="introduction"] .add-task-item-btn:hover {
-  color: #17a2b8 !important;
-  opacity: 1 !important;
 }
