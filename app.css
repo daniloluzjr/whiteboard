@@ -1195,7 +1195,8 @@ body {
 }
 
 /* Consolidated card-specific hover colors with high specificity */
-.task-card[data-group="introduction"] .card-header .add-task-item-btn:hover {
+.task-card[data-group="introduction"] .add-task-item-btn:hover,
+#glasnevin-intro-add-btn:hover {
   color: #17a2b8 !important;
   opacity: 1 !important;
 }
