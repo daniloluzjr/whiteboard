@@ -29,14 +29,22 @@ document.addEventListener('DOMContentLoaded', () => {
             'teal': { text: '#155724', bg: 'rgba(32, 201, 151, 0.1)' }
         };
 
-        // --- Helper: Safe Date Parser ---
         // Handles MySQL format "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DDTHH:MM:SS"
+        // And also strips trailing 'Z' to prevent automatic browser timezone shifts (DST bug fix)
         function safeDate(dateInput) {
             if (!dateInput) return null;
             if (dateInput instanceof Date) return dateInput;
-            // If string contains space and no T, replace space with T
-            if (typeof dateInput === 'string' && dateInput.includes(' ') && !dateInput.includes('T')) {
-                return new Date(dateInput.replace(' ', 'T'));
+            
+            if (typeof dateInput === 'string') {
+                // Strip trailing Z to force local parsing (treats DB time as absolute local time)
+                if (dateInput.endsWith('Z')) {
+                    dateInput = dateInput.slice(0, -1);
+                }
+                
+                // If string contains space and no T, replace space with T
+                if (dateInput.includes(' ') && !dateInput.includes('T')) {
+                    dateInput = dateInput.replace(' ', 'T');
+                }
             }
             return new Date(dateInput);
         }
@@ -1507,7 +1515,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 taskDates.classList.remove('hidden');
                 if (currentTaskData.created_at) {
-                    const createdDateStr = new Date(currentTaskData.created_at).toLocaleString('pt-BR');
+                    const createdDateStr = safeDate(currentTaskData.created_at).toLocaleString('pt-BR');
                     let createdByStr = '';
 
                     if (currentTaskData.created_by && allUsersCache[currentTaskData.created_by]) {
@@ -1517,7 +1525,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     creationDateSpan.textContent = createdDateStr + createdByStr;
                 }
                 if (currentTaskData.completed_at) {
-                    const completedDateStr = new Date(currentTaskData.completed_at).toLocaleString('pt-BR');
+                    const completedDateStr = safeDate(currentTaskData.completed_at).toLocaleString('pt-BR');
                     let completedByStr = '';
 
                     if (currentTaskData.completed_by && allUsersCache[currentTaskData.completed_by]) {
