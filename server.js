@@ -49,6 +49,12 @@ app.post('/api/register', async (req, res) => {
     // ------------------------
 
     try {
+        // Check if email is blocked
+        const [blocked] = await pool.query('SELECT * FROM blocked_emails WHERE email = ?', [email]);
+        if (blocked.length > 0) {
+            return res.status(403).json({ error: 'You are not authorized to enter this site, please contact the administrator.', isBlocked: true });
+        }
+
         // Check if user exists
         const [existing] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
         if (existing.length > 0) {
@@ -75,6 +81,12 @@ app.post('/api/login', async (req, res) => {
         return res.status(400).json({ error: 'Email and password required' });
     }
     try {
+        // Check if email is blocked
+        const [blocked] = await pool.query('SELECT * FROM blocked_emails WHERE email = ?', [email]);
+        if (blocked.length > 0) {
+            return res.status(403).json({ error: 'You are not authorized to enter this site, please contact the administrator.', isBlocked: true });
+        }
+
         // Find user
         const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
         if (users.length === 0) {
@@ -154,20 +166,59 @@ app.patch('/api/users/:id', async (req, res) => {
 });
 
 // DELETE /api/users/:id - Delete a user (Admin/Cleanup tool)
-app.delete('/api/users/:id', authenticateToken, async (req, res) => {
+app.delete('/api/users/:id', async (req, res) => {
     const { id } = req.params;
 
     // Optional: Prevent deleting self
-    if (parseInt(id) === req.user.id) {
+    if (req.user && parseInt(id) === req.user.id) {
         return res.status(400).json({ error: 'Cannot delete yourself' });
     }
 
     try {
+        await pool.query('UPDATE tasks SET created_by = NULL WHERE created_by = ?', [id]);
+        await pool.query('UPDATE tasks SET completed_by = NULL WHERE completed_by = ?', [id]);
+        await pool.query('DELETE FROM activity_logs WHERE user_id = ?', [id]);
+
         await pool.query('DELETE FROM users WHERE id = ?', [id]);
         res.json({ message: 'User deleted' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to delete user' });
+    }
+});
+
+// --- Blocked Emails Routes ---
+app.get('/api/blocked-emails', async (req, res) => {
+    try {
+        const [emails] = await pool.query('SELECT email FROM blocked_emails');
+        const emailList = emails.map(e => e.email).join('\n');
+        res.send(emailList);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch blocked emails' });
+    }
+});
+
+app.post('/api/blocked-emails', async (req, res) => {
+    // Admin route, currently unauthenticated matching other admin endpoints
+    const { emails } = req.body; 
+    
+    if (typeof emails !== 'string') {
+        return res.status(400).json({ error: 'Invalid input. Expected string.' });
+    }
+
+    const emailArray = emails.split(/[\n,;]+/).map(e => e.trim()).filter(e => e);
+
+    try {
+        await pool.query('DELETE FROM blocked_emails');
+        if (emailArray.length > 0) {
+            const values = emailArray.map(e => [e]);
+            await pool.query('INSERT IGNORE INTO blocked_emails (email) VALUES ?', [values]);
+        }
+        res.json({ message: 'Blocked emails updated' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to update blocked emails' });
     }
 });
 
@@ -250,6 +301,19 @@ async function runMigrations() {
             console.log("Migration: Adding 'last_login' column to users table...");
             await pool.query("ALTER TABLE users ADD COLUMN last_login DATETIME NULL");
             console.log("Migration: 'last_login' column added.");
+        }
+
+        // Check if 'blocked_emails' table exists
+        const [tablesBlocked] = await pool.query("SHOW TABLES LIKE 'blocked_emails'");
+        if (tablesBlocked.length === 0) {
+            console.log("Migration: Creating 'blocked_emails' table...");
+            await pool.query(`
+                CREATE TABLE blocked_emails (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    email VARCHAR(255) UNIQUE NOT NULL
+                )
+            `);
+            console.log("Migration: 'blocked_emails' table created.");
         }
 
         // --- One-time Cleanup for Glasnevin Whiteboard ---

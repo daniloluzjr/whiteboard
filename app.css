@@ -120,6 +120,17 @@ body {
   filter: grayscale(100%);
 }
 
+/* Activity Log Action Colors */
+.action-created {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.action-completed {
+  color: #28a745;
+  font-weight: 600;
+}
+
 /* Add Sticker Button */
 .add-sticker-container {
   margin-top: auto;
@@ -1149,6 +1160,11 @@ body {
 
 .action-created {
   color: #007bff;
+  font-weight: bold;
+}
+
+.action-completed {
+  color: #28a745;
   font-weight: bold;
 }
 
