@@ -1889,11 +1889,13 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             loginContainer.classList.add('hidden');
             registerContainer.classList.remove('hidden');
+            document.getElementById('blocked-banner').style.display = 'none'; // Hide banner when changing views
         });
         showLoginLink.addEventListener('click', (e) => {
             e.preventDefault();
             registerContainer.classList.add('hidden');
             loginContainer.classList.remove('hidden');
+            document.getElementById('blocked-banner').style.display = 'none'; // Hide banner when changing views
         });
 
         // Register Logic
@@ -1928,6 +1930,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     showNotification('Registration successful! Please login.', 'success');
                     setTimeout(() => showLoginLink.click(), 1500);
                 } else {
+                    if (response.status === 403 && data.isBlocked) {
+                        document.getElementById('blocked-banner').style.display = 'block';
+                        document.getElementById('register-container').classList.add('hidden');
+                        document.getElementById('login-container').classList.remove('hidden');
+                        return;
+                    }
                     showNotification(data.error || 'Registration failed', 'error');
                 }
             } catch (error) {
@@ -1961,6 +1969,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Handle HTTP Errors
                 if (!response.ok) {
                     const data = await response.json().catch(() => ({})); // Handle cases where JSON parse fails
+
+                    if (response.status === 403 && data.isBlocked) {
+                        document.getElementById('blocked-banner').style.display = 'block';
+                        btn.disabled = false;
+                        btn.innerHTML = 'Login';
+                        return;
+                    }
 
                     if (response.status === 401) {
                         showNotification('Invalid email or password.', 'error');
