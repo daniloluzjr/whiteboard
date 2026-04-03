@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             li.dataset.completionDate = task.completed_at || '';
             li.dataset.priority = task.priority;
 
-            const creationDate = new Date(task.created_at).toLocaleDateString('pt-BR');
+            const creationDate = new Date(task.created_at).toLocaleDateString('en-GB');
             const completionInfo = task.completed_at
                 ? ` - <em>completed on ${new Date(task.completed_at).toLocaleDateString('en-US')}</em>`
                 : ` - <em>added on ${creationDate}</em>`;
@@ -364,10 +364,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 taskDates.classList.remove('hidden');
                 if (currentTaskData.created_at) {
-                    creationDateSpan.textContent = new Date(currentTaskData.created_at).toLocaleString('pt-BR');
+                    creationDateSpan.textContent = new Date(currentTaskData.created_at).toLocaleString('en-GB');
                 }
                 if (currentTaskData.completed_at) {
-                    completionDateSpan.textContent = new Date(currentTaskData.completed_at).toLocaleString('pt-BR');
+                    completionDateSpan.textContent = new Date(currentTaskData.completed_at).toLocaleString('en-GB');
                 } else {
                     completionDateSpan.textContent = 'Pending...';
                 }
