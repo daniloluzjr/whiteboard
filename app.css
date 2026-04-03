@@ -1274,9 +1274,10 @@ body {
   color: #212529; /* Dark shade matching header text */
   cursor: pointer;
   position: relative;
-  padding: 0 5px; /* Minimal padding */
+  padding: 0 0 0 10px; /* Minimal padding with 10px left gap */
   transition: transform 0.2s ease, opacity 0.2s;
-  display: flex;
+  display: inline-flex;
+  vertical-align: middle;
   align-items: center;
   justify-content: center;
 }
