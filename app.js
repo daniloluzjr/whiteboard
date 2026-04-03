@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update this URL if your backend is hosted elsewhere
     // If you are using Vercel, this won't work for WebSocket (requires serverless solution like Pusher). 
     // But since you have a Node server (Railway/Heroku/Render), this is fine.
-    const API_URL = 'https://web-production-b230e.up.railway.app/api';
+    const API_URL = '/api';
     // const API_URL = '/api'; // Reverted: Relative path only works if served from same origin
 
     // --- PAGE ROUTER ---
@@ -29,19 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
             'teal': { text: '#155724', bg: 'rgba(32, 201, 151, 0.1)' }
         };
 
+        // --- Helper: Safe Date Parser ---
         // Handles MySQL format "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DDTHH:MM:SS"
-        // And also strips trailing 'Z' to prevent automatic browser timezone shifts (DST bug fix)
+        // And strips trailing 'Z' to prevent automatic browser timezone shifts (DST bug fix)
         function safeDate(dateInput) {
             if (!dateInput) return null;
             if (dateInput instanceof Date) return dateInput;
             
             if (typeof dateInput === 'string') {
-                // Strip trailing Z to force local parsing (treats DB time as absolute local time)
                 if (dateInput.endsWith('Z')) {
                     dateInput = dateInput.slice(0, -1);
                 }
-                
-                // If string contains space and no T, replace space with T
                 if (dateInput.includes(' ') && !dateInput.includes('T')) {
                     dateInput = dateInput.replace(' ', 'T');
                 }
@@ -339,10 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let activeGroupType = 'standard'; // 'standard', 'intro', 'compact'
         let currentTaskData = null;
 
-        // --- Initialization ---
-        initializeBoard();
-        fetchAndCheckLogs();
-
         // --- Fix for Navigation/Cache Restoration ---
         // Ensures data reloads when user navigates back to the page (handling bfcache)
         window.addEventListener('pageshow', (event) => {
@@ -352,6 +346,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadUsers();
             }
         });
+
+        // --- Notification Load ---
+        fetchAndCheckLogs();
 
         // Auto-Refresh every 5 seconds (5,000 ms) for near real-time updates
         setInterval(() => {
@@ -485,22 +482,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setInterval(checkAutoLogout, 60000); // Check every minute
         checkAutoLogout(); // Check immediately on load too, just in case they open it right at 8:30
-        async function initializeBoard() {
-            // First: Check if user is valid and NOT expired
-            // This function handles its own redirections if invalid
-            const authPassed = await loadUsers(); 
-            
-            if (authPassed) {
-                // Only if auth passes, we fetch private data
-                await setupFixedGroups();
-                await loadGroups();
-                
-                // Finally, reveal the page to the user
-                const container = document.querySelector('.app-container');
-                if (container) container.style.display = 'flex';
-            }
-        }
-
         async function setupFixedGroups() {
             // Ensure fixed groups exist in DB and update DOM with their real IDs
             const groups = await fetchGroups();
@@ -536,9 +517,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // If we have both, move tasks from secondary to main, then delete secondary
             else if (secondaryGroup && mainSickGroup) {
                 console.log("Merging Sick groups...");
-                // Note: We need to move tasks. Since we don't have a bulk move API easily here, 
-                // we will rely on the user manually moving them IF we can't do it.
-                // But wait, we can just loop update.
                 if (secondaryGroup.tasks && secondaryGroup.tasks.length > 0) {
                     for (const task of secondaryGroup.tasks) {
                         await updateTaskAPI(task.id, { group_id: mainSickGroup.id });
@@ -564,7 +542,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (def.name.startsWith('Introduction')) {
                     dbGroup = groups.find(g => g.name === 'Introduction' || g.name === 'Introduction (Schedule)');
                 } else if (def.name === 'Sick Carers') {
-                    // Refresh search in case we just created/renamed it above
                     dbGroup = groups.find(g => g.name === 'Sick Carers');
                 }
 
@@ -584,7 +561,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             card.classList.remove('hidden');
                         });
                     } else {
-                        // Fallback: This is expected if HTML is missing. We will warn.
                         console.warn(`Hardcoded card for ${def.name} not found.`);
                     }
                 }
@@ -785,16 +761,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     li.dataset.id = log.id;
                     
                     // The safeDate function is globally scoped in parent DOMContentLoaded
-                    const dateStr = safeDate(log.created_at).toLocaleString('pt-BR');
-                    let safeName = log.user_name || 'Alguém';
+                    const dateStr = safeDate(log.created_at).toLocaleString('en-GB');
+                    let safeName = log.user_name || 'Someone';
                     let actionText = '';
                     
                     if (log.action === 'CREATED') {
-                        actionText = `criou "${log.task_title}" em ${log.group_name}`;
+                        actionText = `created "${log.task_title}" in ${log.group_name}`;
                     } else if (log.action === 'COMPLETED') {
-                        actionText = `concluiu "${log.task_title}" em ${log.group_name}`;
+                        actionText = `completed "${log.task_title}" in ${log.group_name}`;
                     } else {
-                        actionText = `${log.action} "${log.task_title}" em ${log.group_name}`;
+                        actionText = `${log.action} "${log.task_title}" in ${log.group_name}`;
                     }
 
                     li.innerHTML = `
@@ -882,14 +858,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 extraGroup?.id
             ].filter(id => id);
 
-            // [FIX] Force Colors for Fixed Groups in Memory if missing
+            // [FIX] Force Colors for Fixed Groups in Memory if missing (or override as requested)
             if (coordGroup && !coordGroup.color) coordGroup.color = 'pink';
             if (hospitalGroup && !hospitalGroup.color) hospitalGroup.color = 'pink'; // Hospital now pink as requested
             if (superGroup && !superGroup.color) superGroup.color = 'green';
             if (introGroup && !introGroup.color) introGroup.color = 'cyan';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
+            // User requested BLUE (Cyan) for Sick Carers and Returned
             if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
             if (sickReturnedGroup) sickReturnedGroup.color = 'cyan';
+            if (carersComeInGroup && !carersComeInGroup.color) carersComeInGroup.color = 'pink';
             if (holidayGroup && !holidayGroup.color) holidayGroup.color = 'indigo';
             if (extraGroup && !extraGroup.color) extraGroup.color = 'teal';
 
@@ -941,6 +919,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (lowerName === 'admitted to hospital' || lowerName === 'returned from hospital' || lowerName === 'hospital') {
                         renderFixedGroupTasks(group);
                     } else if (lowerName === 'coordinators') {
+                        renderFixedGroupTasks(group);
+                    } else if (lowerName === 'supervisors') {
+                        renderFixedGroupTasks(group);
+                    } else if (lowerName === 'log sheets needed' || lowerName === 'sheets needed' || lowerName === 'log sheets delivered') {
                         renderFixedGroupTasks(group);
                     } else if (lowerName === 'extra to do' || lowerName === 'extra done') {
                         renderFixedGroupTasks(group);
@@ -1038,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Determine color based on name if group.color is missing (Legacy Fix)
             let groupColor = group.color;
             if (!groupColor) {
-                if (group.name === 'Coordinators') groupColor = 'pink'; // [NEW] Default for Glasnevin is Pink
+                if (group.name === 'Coordinators') groupColor = 'pink';
                 else if (group.name === 'Supervisors') groupColor = 'green';
                 else if (group.name === 'Log Sheets Needed' || group.name === 'Sheets Needed') groupColor = 'purple';
                 else if (group.name.includes('Introduction')) groupColor = 'cyan';
@@ -1078,15 +1060,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const color = card.dataset.color || groupColor;
                 renderGroupedList(container, doneTasks, isScheduleGroup ? 'scheduled_at' : 'completed_at', 'desc', renderMode, color);
             });
-        }
-
-        // --- Logout Implementation ---
-        function performLogout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            sessionStorage.removeItem('authToken');
-            sessionStorage.removeItem('user');
-            window.location.href = 'index.html';
         }
 
         // --- Logout Logic ---
@@ -1131,6 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 group.name === 'Sheets Needed' ||
                 group.name === 'Sick Carers' ||
                 group.name === 'Sick Carers Returned' ||
+                group.name === 'Carers to come in' ||
                 group.name === 'Carers on Holiday' ||
                 group.name === 'Extra To Do';
 
@@ -1346,7 +1320,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (activeGroupIsIntro ||
                         groupTitle.includes('sick carers') ||
                         groupTitle.includes('admitted to hospital') ||
-                        groupTitle.includes('coordinators') ||
                         groupTitle.includes('carers to come in') ||
                         groupTitle.includes('carers on holiday')) {
                         activeGroupHasSchedule = true;
@@ -1950,26 +1923,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+        function checkAutoLogout() {
+            const now = new Date();
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            if (currentHours === 8 && currentMinutes === 30) {
+                performLogout('Daily Login Refresh (8:30 AM)\nPlease log in again to start your day.');
+            }
+        }
 
+        function performLogout(message) {
+            if (message) alert(message);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
 
-        // --- INITIALIZATION ---
+        setInterval(checkAutoLogout, 60000); // Check every minute
+        checkAutoLogout(); // Check immediately on load too
 
-        (async () => {
-            try {
-                initializeBoard();
+        async function initializeBoard() {
+            const authPassed = await loadUsers(); 
+            
+            if (authPassed) {
                 await setupFixedGroups();
                 await loadGroups();
-                await loadUsers(); // Ensure users load too
-            } catch (e) {
-                console.error(e);
-                alert("Init Failed: " + e.message);
+                
+                const container = document.querySelector('.app-container');
+                if (container) container.style.display = 'flex';
             }
-        })();
+        }
 
-
-
-
-
+        initializeBoard();
     }
 
     // --- HELPERS ---
@@ -2057,18 +2044,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json();
 
-                if (response.ok) {
-                    showNotification('Registration successful! Please login.', 'success');
-                    setTimeout(() => showLoginLink.click(), 1500);
-                } else {
+                if (!response.ok) {
                     if (response.status === 403 && data.isBlocked) {
                         document.getElementById('blocked-banner').style.display = 'block';
                         document.getElementById('register-container').classList.add('hidden');
                         document.getElementById('login-container').classList.remove('hidden');
                         return;
                     }
-                    showNotification(data.error || 'Registration failed', 'error');
+                    showNotification(data.error || "Registration failed", 'error');
+                    return;
                 }
+
+                showNotification('Registration successful! Please login.', 'success');
+                setTimeout(() => showLoginLink.click(), 1500);
             } catch (error) {
                 console.error("Fetch error:", error);
                 showNotification('Error connecting to server.', 'error');
@@ -2149,119 +2137,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- API CORE ---
-    function getAuthHeaders() {
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        };
-    }
-
-    async function fetchGroups() {
-        try {
-            const response = await fetch(`${API_URL}/groups`, { headers: getAuthHeaders() });
-            if (!response.ok) throw new Error('Failed to fetch groups');
-            return await response.json();
-        } catch (error) {
-            console.error("API Error (fetchGroups):", error);
-            return [];
-        }
-    }
-
-    async function fetchUsers() {
-        try {
-            const response = await fetch(`${API_URL}/users`, { headers: getAuthHeaders() });
-            if (!response.ok) throw new Error('Failed to fetch users');
-            return await response.json();
-        } catch (error) {
-            console.error("API Error (fetchUsers):", error);
-            return [];
-        }
-    }
-
-    async function createGroupAPI(name, color) {
-        try {
-            const response = await fetch(`${API_URL}/groups`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ name, color })
-            });
-            return await response.json();
-        } catch (error) {
-            console.error("API Error (createGroup):", error);
-        }
-    }
-
-    async function deleteGroupAPI(id) {
-        try {
-            await fetch(`${API_URL}/groups/${id}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            });
-        } catch (error) {
-            console.error("API Error (deleteGroup):", error);
-        }
-    }
-
-    async function updateUserStatusAPI(status) {
-        try {
-            await fetch(`${API_URL}/users/status`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ status })
-            });
-        } catch (error) {
-            console.error("API Error (updateStatus):", error);
-        }
-    }
-
-    async function createTaskAPI(taskData) {
-        try {
-            const response = await fetch(`${API_URL}/tasks`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(taskData)
-            });
-            return await response.json();
-        } catch (error) {
-            console.error("API Error (createTask):", error);
-        }
-    }
-
-    async function updateTaskAPI(taskId, taskData) {
-        try {
-            await fetch(`${API_URL}/tasks/${taskId}`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(taskData)
-            });
-        } catch (error) {
-            console.error("API Error (updateTask):", error);
-        }
-    }
-
-    async function deleteTaskAPI(taskId) {
-        try {
-            await fetch(`${API_URL}/tasks/${taskId}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            });
-        } catch (error) {
-            console.error("API Error (deleteTask):", error);
-        }
-    }
-
-    async function completeTaskAPI(taskId, solution = '') {
-        try {
-            const response = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ solution })
-            });
-            return await response.json();
-        } catch (error) {
-            console.error("API Error (completeTask):", error);
-        }
-    }
 });
