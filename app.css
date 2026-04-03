@@ -1302,7 +1302,7 @@ body {
 .notification-drawer {
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   margin-top: 15px;
   width: 350px;
   max-width: 90vw;
