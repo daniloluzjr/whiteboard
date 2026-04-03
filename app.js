@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- NEW: Authentication Check on Refresh ---
             if (!currentUser) {
                 performLogout('Você não está logado.');
-                return;
+                return false;
             }
 
             const currentDbUser = users.find(u => u.id === currentUser.id);
@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. User was removed or blocked by admin
             if (!currentDbUser) {
                 performLogout('Seu usuário foi removido ou bloqueado.');
-                return;
+                return false;
             }
 
             // 2. User hasn't logged in since the last 08:30 reset
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!isCurrentUserOnline) {
                 performLogout('Sua sessão expirou (Reset Diário). Por favor, faça login novamente.');
-                return;
+                return false;
             }
             // ------------------------------------------
 
@@ -285,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 offlineUsers.forEach(u => userStatusList.appendChild(renderUserItem(u, true)));
             }
+            return true;
         }
 
         // Popup Selection
@@ -485,9 +486,19 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(checkAutoLogout, 60000); // Check every minute
         checkAutoLogout(); // Check immediately on load too, just in case they open it right at 8:30
         async function initializeBoard() {
-            await setupFixedGroups();
-            loadGroups();
-            loadUsers(); // NEW: Load users
+            // First: Check if user is valid and NOT expired
+            // This function handles its own redirections if invalid
+            const authPassed = await loadUsers(); 
+            
+            if (authPassed) {
+                // Only if auth passes, we fetch private data
+                await setupFixedGroups();
+                await loadGroups();
+                
+                // Finally, reveal the page to the user
+                const container = document.querySelector('.app-container');
+                if (container) container.style.display = 'flex';
+            }
         }
 
         async function setupFixedGroups() {

@@ -1266,6 +1266,21 @@ body {
   transform: translateY(-3px); /* Shift icon up to align with H1 text */
 }
 
+/* Mobile Header Adjustment */
+@media screen and (max-width: 600px) {
+  .main-header h1 {
+    font-size: 1.25rem !important; /* Smaller title for mobile */
+  }
+  .main-header .notification-bell-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .main-header .notification-badge {
+    width: 8px !important;
+    height: 8px !important;
+  }
+}
+
 .notification-bell-btn {
   background: transparent !important;
   border: none !important;
