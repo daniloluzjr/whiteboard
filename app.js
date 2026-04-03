@@ -106,6 +106,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 cutoffTime.setDate(cutoffTime.getDate() - 1);
             }
 
+            // --- NEW: Authentication Check on Refresh ---
+            if (!currentUser) {
+                performLogout('Você não está logado.');
+                return;
+            }
+
+            const currentDbUser = users.find(u => u.id === currentUser.id);
+
+            // 1. User was removed or blocked by admin
+            if (!currentDbUser) {
+                performLogout('Seu usuário foi removido ou bloqueado.');
+                return;
+            }
+
+            // 2. User hasn't logged in since the last 08:30 reset
+            let isCurrentUserOnline = false;
+            if (currentDbUser.last_login) {
+                const lastLoginDate = new Date(currentDbUser.last_login);
+                if (lastLoginDate >= cutoffTime) {
+                    isCurrentUserOnline = true;
+                }
+            }
+
+            if (!isCurrentUserOnline) {
+                performLogout('Sua sessão expirou (Reset Diário). Por favor, faça login novamente.');
+                return;
+            }
+            // ------------------------------------------
+
             const onlineUsers = [];
             const offlineUsers = [];
 
