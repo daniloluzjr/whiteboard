@@ -55,6 +55,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const mobileOverlay = document.getElementById('mobile-overlay');
         const logoutBtn = document.getElementById('logout-btn');
 
+        // --- Notification Logic ---
+        const notificationBellBtn = document.getElementById('notification-bell-btn');
+        const notificationDrawer = document.getElementById('notification-drawer');
+        const closeNotificationBtn = document.getElementById('close-notification-btn');
+
+        if (notificationBellBtn) {
+            notificationBellBtn.addEventListener('click', () => {
+                if (notificationDrawer) notificationDrawer.classList.add('open');
+                const badge = document.getElementById('notification-badge');
+                if (badge) badge.classList.add('hidden');
+                
+                const activityLogList = document.getElementById('activity-log-list');
+                if (activityLogList && activityLogList.children.length > 0) {
+                    const firstLogItem = activityLogList.querySelector('li.activity-log-item');
+                    if (firstLogItem && firstLogItem.dataset.id) {
+                        localStorage.setItem('lastSeenLogId', firstLogItem.dataset.id);
+                    }
+                }
+            });
+        }
+
+        if (closeNotificationBtn) {
+            closeNotificationBtn.addEventListener('click', () => {
+                if (notificationDrawer) notificationDrawer.classList.remove('open');
+            });
+        }
+
         if (mobileMenuBtn) {
             mobileMenuBtn.addEventListener('click', () => {
                 sidebar.classList.toggle('open');
@@ -313,6 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Initialization ---
         initializeBoard();
+        fetchAndCheckLogs();
 
         // --- Fix for Navigation/Cache Restoration ---
         // Ensures data reloads when user navigates back to the page (handling bfcache)
@@ -337,6 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // console.log("Auto-refreshing tasks..."); // Less noise in console
             loadGroups();
             loadUsers();
+            fetchAndCheckLogs(); // NEW: Refresh logs
             checkHolidayReturns(); // NEW: Check for holiday returns
         }, 600000); // 10 Minutes (600000ms)
 
@@ -709,6 +738,66 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error(error);
                 return [];
+            }
+        }
+
+        async function fetchAndCheckLogs() {
+            try {
+                const response = await fetch(`${API_URL}/logs`);
+                if (!response.ok) return;
+                const logs = await response.json();
+                
+                const notificationBadge = document.getElementById('notification-badge');
+                const activityLogList = document.getElementById('activity-log-list');
+
+                if (!activityLogList) return;
+                
+                activityLogList.innerHTML = '';
+                if (logs.length === 0) {
+                    activityLogList.innerHTML = '<li class="activity-log-item" style="text-align:center;color:#888;padding:20px;">No recent activity.</li>';
+                    if (notificationBadge) notificationBadge.classList.add('hidden');
+                    return;
+                }
+
+                const lastSeenLogId = parseInt(localStorage.getItem('lastSeenLogId')) || 0;
+                let hasNewLogs = false;
+
+                logs.forEach(log => {
+                    if (log.id > lastSeenLogId) {
+                        hasNewLogs = true;
+                    }
+                    
+                    const li = document.createElement('li');
+                    li.classList.add('activity-log-item');
+                    li.dataset.id = log.id;
+                    
+                    // The safeDate function is globally scoped in parent DOMContentLoaded
+                    const dateStr = safeDate(log.created_at).toLocaleString('pt-BR');
+                    let safeName = log.user_name || 'Alguém';
+                    let actionText = '';
+                    
+                    if (log.action === 'CREATED') {
+                        actionText = `criou "${log.task_title}" em ${log.group_name}`;
+                    } else if (log.action === 'COMPLETED') {
+                        actionText = `concluiu "${log.task_title}" em ${log.group_name}`;
+                    } else {
+                        actionText = `${log.action} "${log.task_title}" em ${log.group_name}`;
+                    }
+
+                    li.innerHTML = `
+                        <span class="activity-log-time">${dateStr}</span>
+                        <span class="activity-log-text"><strong>${safeName}</strong> ${actionText}</span>
+                    `;
+                    activityLogList.appendChild(li);
+                });
+
+                if (hasNewLogs) {
+                    if (notificationBadge) notificationBadge.classList.remove('hidden');
+                } else {
+                    if (notificationBadge) notificationBadge.classList.add('hidden');
+                }
+            } catch (e) {
+                console.error("Error fetching logs:", e);
             }
         }
 

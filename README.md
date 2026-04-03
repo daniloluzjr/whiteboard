@@ -60,6 +60,11 @@ This project uses a **Split Architecture** logic, meaning the visual part (Front
 *   **Safeguards:** Red "Permanent Action" warning modal appears before deletion.
 *   **Admin Dashboard:** (`/admin.html`) to view/manage all data.
 
+### 🔔 Notification System (App-Ready)
+*   **Activity Drawer:** A sliding side-drawer accessible via the bell icon in the header tracks real-time chronologically ordered logs of tasks created and completed.
+*   **Smart Red Badge:** An intelligent red dot appears on the bell only if there are new unread activities. It syncs locally using `localStorage`.
+*   **Mobile-Optimized:** Designed as a native-feeling overlay on mobile to prepare the UI for future WebView/PWA push-notification integration.
+
 ### 🎨 UI/UX Design (New!)
 *   **Glassmorphism:** Global application of transparency (`rgba`) and blur filters (`backdrop-filter`) for a premium, modern feel.
 *   **Smart Transparency:** Group cards use tinted transparent backgrounds (e.g., Blue Tint for Coordinators) to maintain the glass effect without losing color coding.

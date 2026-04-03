@@ -1257,3 +1257,127 @@ body {
 .task-card[data-color="teal"] .add-task-item-btn:hover {
   color: #20c997 !important;
 }
+
+/* --- NOTIFICATION SYSTEM --- */
+.notification-container-header {
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.notification-bell-btn {
+  background: transparent;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  position: relative;
+  padding: 5px;
+  transition: transform 0.2s ease, opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-bell-btn:hover {
+  transform: scale(1.1);
+  color: #17a2b8;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 10px;
+  height: 10px;
+  background-color: #e74c3c;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+/* Base Styles for Drawer */
+.notification-drawer {
+  position: fixed;
+  top: 0;
+  right: -400px;
+  width: 350px;
+  max-width: 90vw;
+  height: 100vh;
+  background-color: #fff;
+  box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+  z-index: 10000;
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-drawer.open {
+  right: 0;
+}
+
+.notification-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+}
+
+.notification-drawer-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.close-notification-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-notification-btn:hover {
+  color: #000;
+}
+
+.notification-drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.activity-log-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activity-log-item {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+  transition: background-color 0.2s;
+}
+
+.activity-log-item:hover {
+  background-color: #f8f9fa;
+}
+
+.activity-log-time {
+  font-size: 0.8rem;
+  color: #888;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.activity-log-text {
+  color: #444;
+  line-height: 1.4;
+}
+
+.activity-log-text strong {
+  color: #222;
+}
