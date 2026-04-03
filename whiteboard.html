@@ -60,7 +60,7 @@
         <main class="main-content">
             <header class="main-header main-header-flex">
                 <button id="mobile-menu-toggle" class="mobile-menu-btn hidden-desktop">☰</button>
-                <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; position: relative;">
                     <h1 style="margin: 0; line-height: 1;">Whiteboard - Glasnevin</h1>
                     <button id="notification-bell-btn" class="notification-bell-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
@@ -68,6 +68,19 @@
                         </svg>
                         <span id="notification-badge" class="notification-badge hidden"></span>
                     </button>
+
+                    <!-- UI Notification Dropdown -->
+                    <div id="notification-drawer" class="notification-drawer hidden">
+                        <div class="notification-drawer-header">
+                            <h3>Activity Logs</h3>
+                            <button id="close-notification-btn" class="close-notification-btn">&times;</button>
+                        </div>
+                        <div class="notification-drawer-content">
+                            <ul id="activity-log-list" class="activity-log-list">
+                                <!-- Notifications loaded dynamically -->
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </header>
             <section class="tasks-grid">
@@ -277,19 +290,6 @@
 
     <!-- Container for Toast Notifications -->
     <div id="notification-container" class="notification-container"></div>
-
-    <!-- UI Notification Drawer -->
-    <div id="notification-drawer" class="notification-drawer hidden">
-        <div class="notification-drawer-header">
-            <h3>Activity Logs</h3>
-            <button id="close-notification-btn" class="close-notification-btn">&times;</button>
-        </div>
-        <div class="notification-drawer-content">
-            <ul id="activity-log-list" class="activity-log-list">
-                <!-- Notifications loaded dynamically -->
-            </ul>
-        </div>
-    </div>
 
     <script src="app.js"></script>
 </body>

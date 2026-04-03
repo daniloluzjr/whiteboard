@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (notificationBellBtn) {
             notificationBellBtn.addEventListener('click', () => {
-                if (notificationDrawer) notificationDrawer.classList.add('open');
+                if (notificationDrawer) notificationDrawer.classList.toggle('open');
                 const badge = document.getElementById('notification-badge');
                 if (badge) badge.classList.add('hidden');
                 
@@ -753,7 +753,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!activityLogList) return;
                 
                 activityLogList.innerHTML = '';
-                if (logs.length === 0) {
+                const displayLogs = logs.slice(0, 15);
+
+                if (displayLogs.length === 0) {
                     activityLogList.innerHTML = '<li class="activity-log-item" style="text-align:center;color:#888;padding:20px;">No recent activity.</li>';
                     if (notificationBadge) notificationBadge.classList.add('hidden');
                     return;
@@ -762,7 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const lastSeenLogId = parseInt(localStorage.getItem('lastSeenLogId')) || 0;
                 let hasNewLogs = false;
 
-                logs.forEach(log => {
+                displayLogs.forEach(log => {
                     if (log.id > lastSeenLogId) {
                         hasNewLogs = true;
                     }

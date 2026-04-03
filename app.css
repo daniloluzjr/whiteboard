@@ -1300,22 +1300,31 @@ body {
 
 /* Base Styles for Drawer */
 .notification-drawer {
-  position: fixed;
-  top: 0;
-  right: -400px;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 15px;
   width: 350px;
   max-width: 90vw;
-  height: 100vh;
+  max-height: 380px;
   background-color: #fff;
-  box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  border-radius: 8px;
+  border: 1px solid #eaeaea;
   z-index: 10000;
-  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+  overflow: hidden;
 }
 
 .notification-drawer.open {
-  right: 0;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 .notification-drawer-header {
