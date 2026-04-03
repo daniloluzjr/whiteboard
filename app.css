@@ -1266,12 +1266,14 @@ body {
 }
 
 .notification-bell-btn {
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
   color: #555;
   cursor: pointer;
   position: relative;
-  padding: 5px;
+  padding: 0 5px; /* Minimal padding */
   transition: transform 0.2s ease, opacity 0.2s;
   display: flex;
   align-items: center;
