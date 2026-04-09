@@ -555,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Log Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
                 { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' },
                 { name: 'Carers on Holiday', selector: '[data-group="holiday"]', color: 'indigo' },
-                { name: 'Extra To Do', selector: '[data-group="extra"]', color: 'teal' }
+                { name: 'Extra To Do', selector: '[data-group="extra"]', color: 'pink' }
             ];
 
             for (const def of fixedDefs) {
