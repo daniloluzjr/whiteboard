@@ -121,7 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const users = await fetchUsers();
             userStatusList.innerHTML = '';
 
-            const currentUser = JSON.parse(localStorage.getItem('user'));
+            const userJson = localStorage.getItem('user') || sessionStorage.getItem('user');
+            const currentUser = userJson ? JSON.parse(userJson) : null;
 
             // Calculate Cutoff Time (Most recent 08:30 AM)
             const now = new Date();
@@ -150,8 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. User hasn't logged in since the last 08:30 reset
             let isCurrentUserOnline = false;
             if (currentDbUser.last_login) {
-                const lastLoginDate = new Date(currentDbUser.last_login);
-                if (lastLoginDate >= cutoffTime) {
+                const lastLoginDate = safeDate(currentDbUser.last_login);
+                if (lastLoginDate && lastLoginDate >= cutoffTime) {
                     isCurrentUserOnline = true;
                 }
             }
@@ -188,8 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let isOnline = false;
                 if (user.last_login) {
-                    const lastLoginDate = new Date(user.last_login);
-                    if (lastLoginDate >= cutoffTime) {
+                    const lastLoginDate = safeDate(user.last_login);
+                    if (lastLoginDate && lastLoginDate >= cutoffTime) {
                         isOnline = true;
                     }
                 }
