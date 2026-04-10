@@ -151,7 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. User hasn't logged in since the last 08:30 reset
             let isCurrentUserOnline = false;
             if (currentDbUser.last_login) {
-                const lastLoginDate = safeDate(currentDbUser.last_login);
+                // Use standard new Date() to correctly parse the Z-appended database timestamp
+                // Using safeDate would strip Z and break local timezone conversions for NOW()
+                const lastLoginDate = new Date(currentDbUser.last_login);
                 if (lastLoginDate && lastLoginDate >= cutoffTime) {
                     isCurrentUserOnline = true;
                 }
@@ -189,7 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let isOnline = false;
                 if (user.last_login) {
-                    const lastLoginDate = safeDate(user.last_login);
+                    // Use new Date() directly so we get properly converted local time from the DB UTC time
+                    const lastLoginDate = new Date(user.last_login);
                     if (lastLoginDate && lastLoginDate >= cutoffTime) {
                         isOnline = true;
                     }
@@ -595,7 +598,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- API Interactions ---
         async function fetchGroups() {
             try {
-                const response = await fetch(`${API_URL}/groups`);
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/groups`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (!response.ok) throw new Error('Failed to fetch groups');
                 return await response.json();
             } catch (error) {
@@ -744,7 +750,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function fetchUsers() {
             try {
-                const response = await fetch(`${API_URL}/users`);
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (!response.ok) return [];
                 return await response.json();
             } catch (error) {
@@ -755,7 +764,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function fetchAndCheckLogs() {
             try {
-                const response = await fetch(`${API_URL}/logs`);
+                const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+                const response = await fetch(`${API_URL}/logs`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (!response.ok) return;
                 const logs = await response.json();
                 
@@ -1079,15 +1091,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const color = card.dataset.color || groupColor;
                 renderGroupedList(container, doneTasks, isScheduleGroup ? 'scheduled_at' : 'completed_at', 'desc', renderMode, color);
             });
-        }
-
-        // --- Logout Implementation ---
-        function performLogout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            sessionStorage.removeItem('authToken');
-            sessionStorage.removeItem('user');
-            window.location.href = 'index.html';
         }
 
         // --- Logout Logic ---
