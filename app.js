@@ -552,25 +552,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const fixedDefs = [
-                { name: 'Hospital Discharge', selector: '[data-group="introduction"]', color: 'cyan' },
-                { name: 'Hospital Discharge Done', selector: '[data-group="introduction"]', color: 'cyan' },
-                { name: 'Coordinators', selector: '[data-group="coordinators"]', color: 'pink' },
-                { name: 'PSP', selector: '[data-group="supervisors"]', color: 'green' },
+                { name: 'Hospital Discharge To Do', selector: '[data-group="hospital-discharge"]', color: 'indigo' },
+                { name: 'Hospital Discharge Done', selector: '[data-group="hospital-discharge"]', color: 'indigo' },
+                { name: 'PSP to Do', selector: '[data-group="psp"]', color: 'green' },
+                { name: 'PSP Done', selector: '[data-group="psp"]', color: 'green' },
                 { name: 'Log Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
-                { name: 'Sick Carers', selector: '[data-group="sick-carers"]', color: 'orange' },
-                { name: 'Carers on Holiday', selector: '[data-group="holiday"]', color: 'indigo' },
-                { name: 'CCA-Spot Check', selector: '[data-group="extra"]', color: 'pink' }
+                { name: 'Log Sheets Delivered', selector: '[data-group="sheets-needed"]', color: 'purple' },
+                { name: 'CCA-Spot Check/Shadow Call to Do', selector: '[data-group="extra"]', color: 'pink' },
+                { name: 'CCA-Spot Check/Shadow Call to Done', selector: '[data-group="extra"]', color: 'pink' }
             ];
 
             for (const def of fixedDefs) {
-                // Approximate match for Intro to avoid creating duplicates if one exists
                 let dbGroup = groups.find(g => g.name === def.name);
-                if (def.name.startsWith('Hospital Discharge')) {
-                    dbGroup = groups.find(g => g.name === 'Hospital Discharge' || g.name === 'Hospital Discharge Done');
-                } else if (def.name === 'Sick Carers') {
-                    // Refresh search in case we just created/renamed it above
-                    dbGroup = groups.find(g => g.name === 'Sick Carers');
-                }
 
                 // If not found, create them to avoid 500 errors.
                 if (!dbGroup) {
@@ -859,51 +852,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const groups = await fetchGroups();
 
             // Identify Fixed Group IDs
-            const coordGroup = groups.find(g => g.name === 'Coordinators');
-            const hospitalGroup = groups.find(g => g.name === 'Admitted to Hospital') || groups.find(g => g.name === 'Hospital');
-            const superGroup = groups.find(g => g.name === 'PSP');
-            const introGroup = groups.find(g => g.name === 'Hospital Discharge' || g.name === 'Hospital Discharge Done');
-            const sheetsGroup = groups.find(g => g.name === 'Log Sheets Needed') || groups.find(g => g.name === 'Sheets Needed');
-            const sickGroup = groups.find(g => g.name === 'Sick Carers');
-            // Try strict match first, then case-insensitive to catch user variations
-            const sickReturnedGroup = groups.find(g => g.name === 'Returned Sick Carers') ||
-                groups.find(g => g.name === 'Sick Carers Returned') ||
-                groups.find(g => g.name.toLowerCase().includes('returned sick carers'));
-            const carersComeInGroup = groups.find(g => g.name === 'Carers to come in');
-            const holidayGroup = groups.find(g => g.name === 'Carers on Holiday');
-            const extraGroup = groups.find(g => g.name === 'CCA-Spot Check' || g.name === 'Extra To Do');
+            const hospitalGroup = groups.find(g => g.name === 'Hospital Discharge To Do' || g.name === 'Hospital Discharge');
+            const pspGroup = groups.find(g => g.name === 'PSP to Do' || g.name === 'PSP');
+            const sheetsGroup = groups.find(g => g.name === 'Log Sheets Needed' || g.name === 'Sheets Needed');
+            const extraGroup = groups.find(g => g.name === 'CCA-Spot Check/Shadow Call to Do' || g.name === 'CCA-Spot Check' || g.name === 'Extra To Do');
 
             // [NEW] CRITICAL: Associate Numeric IDs to Hardcoded Cards BEFORE rendering
-            if (hospitalGroup) document.querySelectorAll('[data-group="hospital"]').forEach(c => c.dataset.group = hospitalGroup.id);
-            if (coordGroup) document.querySelectorAll('[data-group="coordinators"]').forEach(c => c.dataset.group = coordGroup.id);
-            if (superGroup) document.querySelectorAll('[data-group="supervisors"]').forEach(c => c.dataset.group = superGroup.id);
-            if (introGroup) document.querySelectorAll('[data-group="introduction"]').forEach(c => c.dataset.group = introGroup.id);
+            if (hospitalGroup) document.querySelectorAll('[data-group="hospital-discharge"]').forEach(c => c.dataset.group = hospitalGroup.id);
+            if (pspGroup) document.querySelectorAll('[data-group="psp"]').forEach(c => c.dataset.group = pspGroup.id);
             if (sheetsGroup) document.querySelectorAll('[data-group="sheets-needed"]').forEach(c => c.dataset.group = sheetsGroup.id);
-            if (sickGroup) document.querySelectorAll('[data-group="sick-carers"]').forEach(c => c.dataset.group = sickGroup.id);
-            if (holidayGroup) document.querySelectorAll('[data-group="holiday"]').forEach(c => c.dataset.group = holidayGroup.id);
             if (extraGroup) document.querySelectorAll('[data-group="extra"]').forEach(c => c.dataset.group = extraGroup.id);
 
             const fixedIds = [
-                coordGroup?.id,
                 hospitalGroup?.id,
-                superGroup?.id,
-                introGroup?.id,
+                pspGroup?.id,
                 sheetsGroup?.id,
-                sickGroup?.id,
-                sickReturnedGroup?.id,
-                holidayGroup?.id,
                 extraGroup?.id
             ].filter(id => id);
 
             // [FIX] Force Colors for Fixed Groups in Memory if missing
-            if (coordGroup && !coordGroup.color) coordGroup.color = 'pink';
-            if (hospitalGroup && !hospitalGroup.color) hospitalGroup.color = 'pink'; // Hospital now pink as requested
-            if (superGroup && !superGroup.color) superGroup.color = 'green';
-            if (introGroup && !introGroup.color) introGroup.color = 'cyan';
+            if (hospitalGroup && !hospitalGroup.color) hospitalGroup.color = 'indigo';
+            if (pspGroup && !pspGroup.color) pspGroup.color = 'green';
             if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
-            if (sickGroup && !sickGroup.color) sickGroup.color = 'orange';
-            if (sickReturnedGroup) sickReturnedGroup.color = 'cyan';
-            if (holidayGroup && !holidayGroup.color) holidayGroup.color = 'indigo';
             if (extraGroup && !extraGroup.color) extraGroup.color = 'pink';
 
             // 1. Clear tasks from FIXED cards
@@ -917,7 +887,7 @@ document.addEventListener('DOMContentLoaded', () => {
             groups.forEach(group => {
                 if (fixedIds.includes(group.id)) {
                     // It's a fixed group, just render its tasks into existing DOM
-                    if (group.name === 'Hospital Discharge' || group.name === 'Hospital Discharge Done') {
+                    if (group.name.includes('Hospital Discharge')) {
                         renderIntroductionTasks(group);
                     } else {
                         renderFixedGroupTasks(group);
@@ -929,43 +899,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (lowerName.includes('hospital discharge')) {
                         console.log("Found floating Hospital Discharge group, forcing render as fixed.");
                         renderIntroductionTasks(group);
-                        const hardcodedCards = document.querySelectorAll('[data-group="introduction"]');
+                        const hardcodedCards = document.querySelectorAll('[data-group="hospital-discharge"]');
                         hardcodedCards.forEach(card => card.dataset.group = group.id);
 
-                    } else if (
-                        lowerName === 'sick carers' ||
-                        lowerName === 'returned sick carers' ||
-                        lowerName === 'sick carers returned'
-                    ) {
+                    } else if (lowerName === 'psp to do' || lowerName === 'psp') {
                         console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
                         renderFixedGroupTasks(group);
-
-                        // Bind to correct DOM element
-                        let selector = lowerName.includes('returned') ? '[data-group="sick-carers-returned"]' : '[data-group="sick-carers"]';
-                        const hardcodedCards = document.querySelectorAll(selector);
+                        const hardcodedCards = document.querySelectorAll('[data-group="psp"]');
                         hardcodedCards.forEach(card => card.dataset.group = group.id);
-
-                    } else if (lowerName === 'carers on holiday' || lowerName === 'carers returning from holiday') {
-                        console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
-                        renderFixedGroupTasks(group);
-                        const hardcodedCards = document.querySelectorAll('[data-group="holiday"]');
-                        hardcodedCards.forEach(card => card.dataset.group = group.id);
-
-                    } else if (lowerName === 'admitted to hospital' || lowerName === 'returned from hospital' || lowerName === 'hospital') {
-                        renderFixedGroupTasks(group);
-                    } else if (lowerName === 'coordinators') {
-                        renderFixedGroupTasks(group);
-                    } else if (lowerName === 'extra to do' || lowerName === 'extra done' || lowerName.includes('cca-spot')) {
-                        renderFixedGroupTasks(group);
-
-                    } else if (
-                        group.name === 'Carer Sick' ||
-                        group.name === 'Returned Carers' ||
-                        group.name === 'Returned Carers'
-                    ) {
-                        // AUTO-DELETE CLEANUP
-                        console.log(`Auto-deleting requested group: ${group.name}`);
-                        deleteGroupAPI(group.id);
                     } else {
                         // Truly dynamic group
                         renderGroup(group);
@@ -983,22 +924,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const todoContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="todo"] ul`);
             if (todoContainer) {
                 // User confirmed Hospital Discharge was correct.
-                renderGroupedList(todoContainer, todoTasks, 'scheduled_at', 'asc', 'intro', 'cyan');
+                renderGroupedList(todoContainer, todoTasks, 'scheduled_at', 'asc', 'intro', 'indigo');
             }
 
             // Renderizar Done
             const doneContainer = document.querySelector(`.task-card[data-group="${group.id}"][data-type="done"] ul`);
             if (doneContainer) {
                 // [CHANGED] User requested Inverted Sort (Newest First) for TASKS DONE
-                renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'desc', 'intro', 'cyan');
+                renderGroupedList(doneContainer, doneTasks, 'scheduled_at', 'desc', 'intro', 'indigo');
             }
         }
 
         // Generic Renderer with Date Headers
-        function renderGroupedList(container, tasks, dateField, sortOrder = 'desc', renderMode = 'standard', groupColor = 'cyan') {
+        function renderGroupedList(container, tasks, dateField, sortOrder = 'desc', renderMode = 'standard', groupColor = 'indigo') {
             container.innerHTML = '';
 
-            const theme = colorThemeMap[groupColor] || colorThemeMap['cyan'];
+            const theme = colorThemeMap[groupColor] || colorThemeMap['indigo'];
 
             tasks.sort((a, b) => {
                 const dateA = safeDate(a[dateField]) || (sortOrder === 'asc' ? new Date('9999-12-31') : new Date('0000-01-01'));
@@ -1051,12 +992,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Determine color based on name if group.color is missing (Legacy Fix)
             let groupColor = group.color;
             if (!groupColor) {
-                if (group.name === 'Coordinators') groupColor = 'pink'; // [NEW] Default for Glasnevin is Pink
-                else if (group.name === 'PSP') groupColor = 'green';
-                else if (group.name === 'Log Sheets Needed' || group.name === 'Sheets Needed') groupColor = 'purple';
-                else if (group.name.includes('Hospital Discharge')) groupColor = 'cyan';
-                else if (group.name === 'Sick Carers') groupColor = 'orange';
-                else if (group.name === 'Carers on Holiday') groupColor = 'indigo';
+                if (group.name.includes('PSP')) groupColor = 'green';
+                else if (group.name.includes('Log Sheets')) groupColor = 'purple';
+                else if (group.name.includes('Hospital Discharge')) groupColor = 'indigo';
+                else if (group.name.includes('CCA-Spot')) groupColor = 'pink';
             }
 
             // Check if this group should be schedule-based
@@ -1129,14 +1068,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Failsafe: Never allow delete button for fixed groups even if rendered dynamically
             let isProtected = group.name.toLowerCase().includes('hospital discharge') ||
-                group.name === 'Coordinators' ||
-                group.name === 'PSP' ||
-                group.name === 'Log Sheets Needed' ||
-                group.name === 'Sheets Needed' ||
-                group.name === 'Sick Carers' ||
-                group.name === 'Sick Carers Returned' ||
-                group.name === 'Carers on Holiday' ||
-                group.name === 'CCA-Spot Check' || group.name === 'Extra To Do';
+                group.name.includes('PSP') ||
+                group.name.includes('Log Sheets') ||
+                group.name.includes('CCA-Spot Check');
 
             const deleteBtnHTML = isProtected ? '' : `<button class="delete-sticker-btn">&times;</button>`;
             const addTaskBtnHTML = type === 'todo' ? `<button class="add-task-item-btn">+</button>` : '';
