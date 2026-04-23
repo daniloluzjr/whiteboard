@@ -330,9 +330,17 @@ async function runMigrations() {
                 await pool.query("UPDATE task_groups SET color = 'pink' WHERE name = 'Coordinators'");
             }
 
+            // Rename newly requested group names
+            await pool.query("UPDATE task_groups SET name = 'Hospital Discharge' WHERE name = 'Introduction' OR name = 'Introduction (Schedule)'");
+            await pool.query("UPDATE task_groups SET name = 'Hospital Discharge Done' WHERE name = 'Tasks done - Introduction'");
+            await pool.query("UPDATE task_groups SET name = 'PSP' WHERE name = 'Supervisors'");
+            await pool.query("UPDATE task_groups SET name = 'PSP Done' WHERE name = 'Tasks done - Supervisors'");
+            await pool.query("UPDATE task_groups SET name = 'CCA-Spot Check' WHERE name = 'Extra To Do'");
+            await pool.query("UPDATE task_groups SET name = 'CCA-Spot Check Done' WHERE name = 'Extra Done'");
+
             // 3. Delete duplicated groups (Introduction, Sick Carers, etc.)
             // We keep the lowest ID for each name and delete others.
-            const groupsToClean = ['Introduction', 'Introduction (Schedule)', 'Sick Carers', 'Carers on Holiday', 'Extra To Do', 'Log Sheets Needed'];
+            const groupsToClean = ['Hospital Discharge', 'Hospital Discharge Done', 'PSP', 'Sick Carers', 'Carers on Holiday', 'CCA-Spot Check', 'Log Sheets Needed'];
             for (const gName of groupsToClean) {
                 const [allG] = await pool.query("SELECT id FROM task_groups WHERE name = ? ORDER BY id ASC", [gName]);
                 if (allG.length > 1) {
