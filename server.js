@@ -318,55 +318,58 @@ async function runMigrations() {
 
         // --- One-time Cleanup for Glasnevin Whiteboard ---
         try {
-            // 1. Rename ID 4 back to original name (Admitted to Hospital)
-            await pool.query("UPDATE task_groups SET name = 'Admitted to Hospital' WHERE id = 4");
-
-            // 2. Ensure "Coordinators" group exists as a NEW group
-            const [coordCheck] = await pool.query("SELECT id FROM task_groups WHERE name = 'Coordinators'");
-            if (coordCheck.length === 0) {
-                console.log("Migration: Creating new 'Coordinators' group...");
-                await pool.query("INSERT INTO task_groups (name, color) VALUES ('Coordinators', 'pink')");
-            } else {
-                await pool.query("UPDATE task_groups SET color = 'pink' WHERE name = 'Coordinators'");
+            // 1. Ensure "Coordinators" and other unwanted groups are GONE
+            const unwantedNames = ['Admitted to Hospital', 'Sick Carers', 'Carers on Holiday', 'Coordinators', 'Introduction', 'Supervisors', 'Extra To Do', 'Hospital', 'Sick', 'Sheets Needed'];
+            for (const name of unwantedNames) {
+                const [gs] = await pool.query("SELECT id FROM task_groups WHERE name = ?", [name]);
+                for (const g of gs) {
+                    await pool.query("DELETE FROM tasks WHERE group_id = ?", [g.id]);
+                    await pool.query("DELETE FROM task_groups WHERE id = ?", [g.id]);
+                }
             }
 
-            // Rename newly requested group names
-            // Hospital Discharge
-            await pool.query("UPDATE task_groups SET name = 'Hospital Discharge To Do', color = 'indigo' WHERE name IN ('Introduction', 'Introduction (Schedule)', 'Hospital Discharge')");
-            await pool.query("UPDATE task_groups SET name = 'Hospital Discharge Done', color = 'indigo' WHERE name IN ('Tasks done - Introduction', 'Hospital Discharge Done')");
-            
-            // PSP
-            await pool.query("UPDATE task_groups SET name = 'PSP to Do', color = 'green' WHERE name IN ('Supervisors', 'PSP')");
-            await pool.query("UPDATE task_groups SET name = 'PSP Done', color = 'green' WHERE name IN ('Tasks done - Supervisors', 'PSP Done')");
-            
-            // CCA-Spot Check
-            await pool.query("UPDATE task_groups SET name = 'CCA-Spot Check/Shadow Call to Do', color = 'pink' WHERE name IN ('Extra To Do', 'CCA-Spot Check')");
-            await pool.query("UPDATE task_groups SET name = 'CCA-Spot Check/Shadow Call to Done', color = 'pink' WHERE name IN ('Extra Done', 'CCA-Spot Check Done')");
+            // 2. Define the 4 Main Pairs (Names and Colors)
+            const mainPairs = [
+                { todo: 'Hospital Discharge To Do', done: 'Hospital Discharge Done', color: 'indigo' },
+                { todo: 'PSP to Do', done: 'PSP Done', color: 'green' },
+                { todo: 'Log Sheets Needed', done: 'Log Sheets Delivered', color: 'purple' },
+                { todo: 'CCA-Spot Check/Shadow Call to Do', done: 'CCA-Spot Check/Shadow Call to Done', color: 'pink' }
+            ];
 
-            // 3. Delete duplicated groups
-            const groupsToClean = ['Hospital Discharge To Do', 'Hospital Discharge Done', 'PSP to Do', 'PSP Done', 'CCA-Spot Check/Shadow Call to Do', 'CCA-Spot Check/Shadow Call to Done', 'Log Sheets Needed'];
+            for (const pair of mainPairs) {
+                // Force name and color for TODO
+                await pool.query("UPDATE task_groups SET color = ? WHERE name = ?", [pair.color, pair.todo]);
+                // Force name and color for DONE
+                await pool.query("UPDATE task_groups SET color = ? WHERE name = ?", [pair.color, pair.done]);
+            }
+
+            // 3. Clean up duplicates and "PSP" vs "PSP to Do"
+            // Special case: Rename "PSP" to "PSP to Do" if it exists
+            await pool.query("UPDATE task_groups SET name = 'PSP to Do', color = 'green' WHERE name = 'PSP'");
+            await pool.query("UPDATE task_groups SET name = 'PSP Done', color = 'green' WHERE name = 'Tasks done - PSP'");
+
+            const groupsToClean = ['Hospital Discharge To Do', 'Hospital Discharge Done', 'PSP to Do', 'PSP Done', 'CCA-Spot Check/Shadow Call to Do', 'CCA-Spot Check/Shadow Call to Done', 'Log Sheets Needed', 'Log Sheets Delivered'];
             for (const gName of groupsToClean) {
                 const [allG] = await pool.query("SELECT id FROM task_groups WHERE name = ? ORDER BY id ASC", [gName]);
                 if (allG.length > 1) {
                     const keepId = allG[0].id;
                     const idsToDelete = allG.slice(1).map(g => g.id);
                     console.log(`Migration: Cleaning duplicates for ${gName}. Keeping ${keepId}, deleting ${idsToDelete}`);
-
-                    // Move tasks to the kept group before deleting
                     await pool.query("UPDATE tasks SET group_id = ? WHERE group_id IN (?)", [keepId, idsToDelete]);
                     await pool.query("DELETE FROM task_groups WHERE id IN (?)", [idsToDelete]);
                 }
             }
 
-            // 4. Delete old unused groups requested to be removed
-            const groupsToDelete = ['Admitted to Hospital', 'Sick Carers', 'Carers on Holiday', 'Coordinators'];
-            for (const gName of groupsToDelete) {
-                const [gToDelete] = await pool.query("SELECT id FROM task_groups WHERE name = ?", [gName]);
-                if (gToDelete.length > 0) {
-                    const gId = gToDelete[0].id;
-                    console.log(`Migration: Deleting removed group ${gName} (ID: ${gId})`);
-                    await pool.query("DELETE FROM tasks WHERE group_id = ?", [gId]);
-                    await pool.query("DELETE FROM task_groups WHERE id = ?", [gId]);
+            // 4. Final Sweep: Delete any group NOT in the main pairs
+            const allowedNames = [];
+            mainPairs.forEach(p => { allowedNames.push(p.todo); allowedNames.push(p.done); });
+            
+            const [allGroups] = await pool.query("SELECT id, name FROM task_groups");
+            for (const g of allGroups) {
+                if (!allowedNames.includes(g.name)) {
+                    console.log(`Migration: Deleting unauthorized group: ${g.name}`);
+                    await pool.query("DELETE FROM tasks WHERE group_id = ?", [g.id]);
+                    await pool.query("DELETE FROM task_groups WHERE id = ?", [g.id]);
                 }
             }
 

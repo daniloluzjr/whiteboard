@@ -870,11 +870,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 extraGroup?.id
             ].filter(id => id);
 
-            // [FIX] Force Colors for Fixed Groups in Memory if missing
-            if (hospitalGroup && !hospitalGroup.color) hospitalGroup.color = 'indigo';
-            if (pspGroup && !pspGroup.color) pspGroup.color = 'green';
-            if (sheetsGroup && !sheetsGroup.color) sheetsGroup.color = 'purple';
-            if (extraGroup && !extraGroup.color) extraGroup.color = 'pink';
+            // [FIX] Force Colors for Fixed Groups in Memory
+            if (hospitalGroup) hospitalGroup.color = 'indigo';
+            if (pspGroup) pspGroup.color = 'green';
+            if (sheetsGroup) sheetsGroup.color = 'purple';
+            if (extraGroup) extraGroup.color = 'pink';
 
             // 1. Clear tasks from FIXED cards
             document.querySelectorAll('.non-deletable ul').forEach(ul => ul.innerHTML = '');
@@ -902,14 +902,28 @@ document.addEventListener('DOMContentLoaded', () => {
                         const hardcodedCards = document.querySelectorAll('[data-group="hospital-discharge"]');
                         hardcodedCards.forEach(card => card.dataset.group = group.id);
 
-                    } else if (lowerName === 'psp to do' || lowerName === 'psp') {
+                    } else if (lowerName.includes('psp')) {
                         console.log(`Found floating fixed group ${group.name}, forcing render as fixed.`);
                         renderFixedGroupTasks(group);
                         const hardcodedCards = document.querySelectorAll('[data-group="psp"]');
                         hardcodedCards.forEach(card => card.dataset.group = group.id);
+                    } else if (lowerName.includes('sheets')) {
+                        renderFixedGroupTasks(group);
+                        const hardcodedCards = document.querySelectorAll('[data-group="sheets-needed"]');
+                        hardcodedCards.forEach(card => card.dataset.group = group.id);
+                    } else if (lowerName.includes('cca-spot') || lowerName.includes('extra')) {
+                        renderFixedGroupTasks(group);
+                        const hardcodedCards = document.querySelectorAll('[data-group="extra"]');
+                        hardcodedCards.forEach(card => card.dataset.group = group.id);
                     } else {
-                        // Truly dynamic group
-                        renderGroup(group);
+                        // Truly dynamic group - Only render if it's NOT one of the above 
+                        // Actually, for safety, we won't render any other group dynamically in Glasnevin 
+                        // unless it's explicitly created via "Add Sticker" (which gives it a random name "Group XXXX")
+                        if (group.name.startsWith('Group ')) {
+                            renderGroup(group);
+                        } else {
+                            console.log(`Ignoring unauthorized group: ${group.name}`);
+                        }
                     }
                 }
             });
