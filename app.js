@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Log Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
                 { name: 'Log Sheets Delivered', selector: '[data-group="sheets-needed"]', color: 'purple' },
                 { name: 'CCA-Spot Check/Shadow Call to Do', selector: '[data-group="extra"]', color: 'pink' },
-                { name: 'CCA-Spot Check/Shadow Call to Done', selector: '[data-group="extra"]', color: 'pink' }
+                { name: 'CCA-Spot Check/Shadow Call Done', selector: '[data-group="extra"]', color: 'pink' }
             ];
 
             for (const def of fixedDefs) {

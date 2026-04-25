@@ -333,7 +333,7 @@ async function runMigrations() {
                 { todo: 'Hospital Discharge To Do', done: 'Hospital Discharge Done', color: 'indigo' },
                 { todo: 'PSP to Do', done: 'PSP Done', color: 'green' },
                 { todo: 'Log Sheets Needed', done: 'Log Sheets Delivered', color: 'purple' },
-                { todo: 'CCA-Spot Check/Shadow Call to Do', done: 'CCA-Spot Check/Shadow Call to Done', color: 'pink' }
+                { todo: 'CCA-Spot Check/Shadow Call to Do', done: 'CCA-Spot Check/Shadow Call Done', color: 'pink' }
             ];
 
             for (const pair of mainPairs) {
@@ -346,9 +346,10 @@ async function runMigrations() {
             // 3. Clean up duplicates and "PSP" vs "PSP to Do"
             // Special case: Rename "PSP" to "PSP to Do" if it exists
             await pool.query("UPDATE task_groups SET name = 'PSP to Do', color = 'green' WHERE name = 'PSP'");
-            await pool.query("UPDATE task_groups SET name = 'PSP Done', color = 'green' WHERE name = 'Tasks done - PSP'");
+            // Rename CCA-Spot Check Done to fix typo
+            await pool.query("UPDATE task_groups SET name = 'CCA-Spot Check/Shadow Call Done' WHERE name = 'CCA-Spot Check/Shadow Call to Done'");
 
-            const groupsToClean = ['Hospital Discharge To Do', 'Hospital Discharge Done', 'PSP to Do', 'PSP Done', 'CCA-Spot Check/Shadow Call to Do', 'CCA-Spot Check/Shadow Call to Done', 'Log Sheets Needed', 'Log Sheets Delivered'];
+            const groupsToClean = ['Hospital Discharge To Do', 'Hospital Discharge Done', 'PSP to Do', 'PSP Done', 'CCA-Spot Check/Shadow Call to Do', 'CCA-Spot Check/Shadow Call Done', 'Log Sheets Needed', 'Log Sheets Delivered'];
             for (const gName of groupsToClean) {
                 const [allG] = await pool.query("SELECT id FROM task_groups WHERE name = ? ORDER BY id ASC", [gName]);
                 if (allG.length > 1) {
