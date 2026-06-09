@@ -98,8 +98,8 @@ app.post('/api/login', async (req, res) => {
         if (!validPassword) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-        // Generate Token
-        const token = jwt.sign({ id: user.id, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+        // Generate Token (no expiration to stay logged in permanently)
+        const token = jwt.sign({ id: user.id, name: user.name }, JWT_SECRET);
 
         // Update last_login
         await pool.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
@@ -115,6 +115,21 @@ app.post('/api/login', async (req, res) => {
 
 // GET /api/users - List all users (id, name, status)
 app.get('/api/users', async (req, res) => {
+    // Try to decode token and update last_login silently to keep active users online
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            if (decoded && decoded.id) {
+                await pool.query('UPDATE users SET last_login = NOW() WHERE id = ?', [decoded.id]);
+            }
+        } catch (authErr) {
+            // Ignore invalid/expired token errors
+            console.log("Optional auth update failed:", authErr.message);
+        }
+    }
+
     try {
         const [users] = await pool.query('SELECT id, name, email, status, last_login FROM users');
         res.json(users);

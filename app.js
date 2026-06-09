@@ -159,10 +159,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // Commented out to allow users to stay logged in permanently (direct login)
+            /*
             if (!isCurrentUserOnline) {
                 performLogout('Your session has expired (Daily Reset). Please log in again.');
                 return false;
             }
+            */
             // ------------------------------------------
 
             const onlineUsers = [];
@@ -473,9 +476,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // To fix this without complex session tracking, let's just ensure that if it is 08:30, we logout.
             // And maybe we can add a simple "Safety" check: If the app is open, run this check.
 
+            // Commented out to prevent daily auto-logout at 8:30 AM
+            /*
             if (currentHours === 8 && currentMinutes === 30) {
                 performLogout('Daily Login Refresh (8:30 AM)\nPlease log in again to start your day.');
             }
+            */
         }
 
         function performLogout(message) {
@@ -487,8 +493,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html';
         }
 
-        setInterval(checkAutoLogout, 60000); // Check every minute
-        checkAutoLogout(); // Check immediately on load too, just in case they open it right at 8:30
+        // Commented out to prevent daily auto-logout
+        // setInterval(checkAutoLogout, 60000); // Check every minute
+        // checkAutoLogout(); // Check immediately on load too, just in case they open it right at 8:30
         async function initializeBoard() {
             // First: Check if user is valid and NOT expired
             // This function handles its own redirections if invalid
