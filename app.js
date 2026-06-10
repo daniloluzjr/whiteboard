@@ -119,6 +119,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function loadUsers() {
             const users = await fetchUsers();
+            if (!users) {
+                // Skip check and rendering to prevent false logouts and UI wipes on network glitches
+                return false;
+            }
             userStatusList.innerHTML = '';
 
             const userJson = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -740,11 +744,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`${API_URL}/users`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (!response.ok) return [];
+                if (response.status === 401 || response.status === 403) {
+                    performLogout('Session expired. Please log in again.');
+                    return null;
+                }
+                if (!response.ok) return null;
                 return await response.json();
             } catch (error) {
                 console.error(error);
-                return [];
+                return null;
             }
         }
 
