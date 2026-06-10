@@ -124,15 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const userJson = localStorage.getItem('user') || sessionStorage.getItem('user');
             const currentUser = userJson ? JSON.parse(userJson) : null;
 
-            // Calculate Cutoff Time (Most recent 08:30 AM)
+            // Calculate Cutoff Time (36 hours ago)
             const now = new Date();
-            let cutoffTime = new Date();
-            cutoffTime.setHours(8, 30, 0, 0);
-
-            // If it's currently before 08:30 AM, the last reset was yesterday 08:30 AM
-            if (now < cutoffTime) {
-                cutoffTime.setDate(cutoffTime.getDate() - 1);
-            }
+            const cutoffTime = new Date(now.getTime() - 36 * 60 * 60 * 1000);
 
             // --- NEW: Authentication Check on Refresh ---
             if (!currentUser) {
@@ -181,14 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Determine Online/Offline status
-                // Logic: If user has logged in since cutoffTime, they are "Online" in the list
+                // Logic: If user has seen/used the site within cutoffTime (last 36 hours), they are "Online" in the list.
                 // OTHERWISE, they are "Offline".
                 // EXCEPTION: If the user explicitly sets their status to 'offline' (via popup), they stay offline?
-                // The request says: "For a person who does not relog after the reboot of 8:30, she is marked as offline until she relogs".
-                // "And the list of offline is a list with names of people who did not relog... names are light and dot is black".
-                // "until she relogs and the dot returns to green and she goes up to online list".
+                // The request says: if someone hasn't seen the site for 36 hours, they are marked as offline.
+                // When they navigate/refresh again, they return to online (green/normal).
 
-                // So, rely on `last_login`.
+                // So, rely on `last_login` (which acts as the last-seen/active timestamp).
                 // Note: user.last_login comes from DB as string or Date object depending on driver.
                 // It might be null if never logged in or new field.
 
@@ -200,13 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         isOnline = true;
                     }
                 }
-
-                // Also, if the user is using the app NOW, their status might be 'free', 'busy', etc.
-                // But if they haven't logged in TODAY (since 8:30), we force them to appear offline visually 
-                // regardless of their DB status? 
-                // Yes, the request implies visual separation based on login time.
-                // However, we should probably treat them as valid Online users if they ARE active.
-                // The user's request is specific: "Users who don't relog... stay marked as offline".
 
                 if (isOnline) {
                     onlineUsers.push(user);
