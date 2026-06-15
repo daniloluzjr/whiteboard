@@ -28,6 +28,16 @@
                 </ul>
             </div>
 
+            <div class="handover-btn-container">
+                <button id="handover-btn" class="handover-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
+                        <path d="M5.5 7a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zM5 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
+                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                    </svg>
+                    Create your handover
+                </button>
+            </div>
+
             <div class="add-sticker-container">
                 <button class="add-sticker-btn">+</button>
                 <span>Add Sticker</span>
@@ -217,6 +227,47 @@
                 <button id="delete-task-btn" class="btn-delete hidden">Delete</button>
                 <button id="close-task-modal-btn" class="btn-cancel">Close</button>
                 <button id="complete-task-btn" class="btn-complete hidden">Mark as Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Handover Modal -->
+    <div id="handover-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <!-- View 1: Date Inputs -->
+            <div id="handover-input-view">
+                <h3 style="margin-bottom: 20px; font-size: 1.4rem; color: #333;">Create Your Handover</h3>
+                <p style="font-size: 0.95rem; color: #666; margin-bottom: 20px;">
+                    Select the date range to gather the tasks you completed.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px; text-align: left;">
+                    <div>
+                        <label for="handover-from-date" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 0.9rem;">From Date:</label>
+                        <input type="date" id="handover-from-date" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 1rem; font-family: inherit;">
+                    </div>
+                    <div>
+                        <label for="handover-to-date" style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 0.9rem;">To Date:</label>
+                        <input type="date" id="handover-to-date" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 1rem; font-family: inherit;">
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="btn-generate-handover" class="btn-save" style="background-color: #6f42c1;">OK</button>
+                    <button id="btn-cancel-handover" class="btn-cancel">Cancel</button>
+                </div>
+            </div>
+
+            <!-- View 2: Summary Report -->
+            <div id="handover-summary-view" class="hidden">
+                <h3 style="margin-bottom: 15px; font-size: 1.4rem; color: #333;">Handover Summary</h3>
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 12px; text-align: left;">
+                    Your handover has been generated and downloaded as a .txt file. Copy it to your clipboard using the button below.
+                </p>
+                <textarea id="handover-summary-text" readonly style="width: 100%; height: 250px; padding: 12px; font-family: monospace; font-size: 0.9rem; border: 1px solid #ced4da; border-radius: 6px; background-color: #f8f9fa; resize: none; margin-bottom: 20px; white-space: pre-wrap; text-align: left; line-height: 1.4; color: #333;"></textarea>
+                <div class="modal-buttons" style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="btn-copy-handover" class="btn-complete" style="background-color: #28a745;">Copy</button>
+                    <button id="btn-back-handover" class="btn-save" style="background-color: #6c757d;">Voltar</button>
+                    <button id="btn-close-handover" class="btn-cancel">Fechar</button>
+                </div>
             </div>
         </div>
     </div>
