@@ -2091,18 +2091,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         report += `${sec.header}\n`;
                         sec.tasks.forEach(t => {
-                            if (sec.format === 'simple') {
-                                report += `${t.title}\n`;
-                            } else {
-                                const detail = t.solution ? t.solution.trim() : (t.description ? t.description.trim() : '');
-                                if (detail) {
-                                    // Strip potential holiday start date prefix like "[Start: YYYY-MM-DD]"
-                                    const cleanDetail = detail.replace(/^\[Start:\s*\d{4}-\d{2}-\d{2}\]\s*/i, '');
-                                    report += `${t.title} - ${cleanDetail}\n`;
-                                } else {
-                                    report += `${t.title}\n`;
-                                }
-                            }
+                            report += `${t.title}\n`;
                         });
 
                         if (index < sections.length - 1) {
