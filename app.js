@@ -2017,129 +2017,106 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
-                    const hdTasks = [];
-                    const pspTasks = [];
-                    const sheetsTasks = [];
-                    const ccaTasks = [];
+                    // Define sections dynamically based on groups present
+                    const sections = [];
 
-                    myCompletedTasks.forEach(task => {
-                        const gName = task.groupName.toLowerCase();
-                        if (gName.includes('hospital discharge')) {
-                            hdTasks.push(task);
-                        } else if (gName.includes('psp')) {
-                            pspTasks.push(task);
-                        } else if (gName.includes('log sheets') || gName.includes('sheets')) {
-                            sheetsTasks.push(task);
-                        } else if (gName.includes('cca-spot') || gName.includes('shadow call') || gName.includes('extra')) {
-                            ccaTasks.push(task);
+                    // 1. Hospital Admissions & Discharges (both)
+                    const hospitalTasks = myCompletedTasks.filter(t => t.groupName.toLowerCase().includes('hospital'));
+                    if (hospitalTasks.length > 0) {
+                        const isGlasnevin = myCompletedTasks.some(t => t.groupName.toLowerCase().includes('hospital discharge'));
+                        sections.push({
+                            header: isGlasnevin ? 'Hospital Discharge:' : 'Hospital Admissions & Discharges:',
+                            tasks: hospitalTasks,
+                            format: 'detail'
+                        });
+                    }
+
+                    // 2. Introduction (Harold Cross)
+                    const introTasks = myCompletedTasks.filter(t => t.groupName.toLowerCase().includes('introduction'));
+                    if (introTasks.length > 0) {
+                        sections.push({
+                            header: 'Introduction:',
+                            tasks: introTasks,
+                            format: 'detail'
+                        });
+                    }
+
+                    // 3. PSP & Staffing updates (both)
+                    const pspTasks = myCompletedTasks.filter(t => t.groupName.toLowerCase().includes('psp') || 
+                                                                  t.groupName.toLowerCase().includes('supervisor') || 
+                                                                  t.groupName.toLowerCase().includes('carers to come') ||
+                                                                  t.groupName.toLowerCase().includes('holiday') ||
+                                                                  t.groupName.toLowerCase().includes('sick'));
+                    if (pspTasks.length > 0) {
+                        const hasStaffing = myCompletedTasks.some(t => t.groupName.toLowerCase().includes('supervisor') || 
+                                                                       t.groupName.toLowerCase().includes('carers to come') ||
+                                                                       t.groupName.toLowerCase().includes('holiday') ||
+                                                                       t.groupName.toLowerCase().includes('sick'));
+                        sections.push({
+                            header: hasStaffing ? 'PSP & Staffing updates:' : 'PSP:',
+                            tasks: pspTasks,
+                            format: 'detail'
+                        });
+                    }
+
+                    // 4. Plans details / Extra (both)
+                    const plansTasks = myCompletedTasks.filter(t => t.groupName.toLowerCase().includes('cca-spot') || 
+                                                                   t.groupName.toLowerCase().includes('shadow call') || 
+                                                                   t.groupName.toLowerCase().includes('extra'));
+                    if (plansTasks.length > 0) {
+                        sections.push({
+                            header: 'Plans details:',
+                            tasks: plansTasks,
+                            format: 'detail'
+                        });
+                    }
+
+                    // 5. Delivered sheets (both)
+                    const sheetsTasks = myCompletedTasks.filter(t => t.groupName.toLowerCase().includes('log sheets') || 
+                                                                    t.groupName.toLowerCase().includes('sheets'));
+                    if (sheetsTasks.length > 0) {
+                        sections.push({
+                            header: 'Delivered sheets:',
+                            tasks: sheetsTasks,
+                            format: 'simple'
+                        });
+                    }
+
+                    let report = `Here is the handover information:\n\n`;
+                    let hasContent = false;
+
+                    sections.forEach((sec, index) => {
+                        if (sec.tasks.length === 0) return;
+                        hasContent = true;
+
+                        report += `${sec.header}\n`;
+                        sec.tasks.forEach(t => {
+                            if (sec.format === 'simple') {
+                                report += `${t.title}\n`;
+                            } else {
+                                const detail = t.solution ? t.solution.trim() : (t.description ? t.description.trim() : '');
+                                if (detail) {
+                                    // Strip potential holiday start date prefix like "[Start: YYYY-MM-DD]"
+                                    const cleanDetail = detail.replace(/^\[Start:\s*\d{4}-\d{2}-\d{2}\]\s*/i, '');
+                                    report += `${t.title} - ${cleanDetail}\n`;
+                                } else {
+                                    report += `${t.title}\n`;
+                                }
+                            }
+                        });
+
+                        if (index < sections.length - 1) {
+                            report += `\n------------------------------------------\n`;
+                        } else {
+                            report += `\n------------------------------------------`;
                         }
                     });
 
-                    const formatTaskDate = (dateInput) => {
-                        const d = safeDate(dateInput);
-                        if (!d || isNaN(d.getTime())) return '';
-                        const day = String(d.getDate()).padStart(2, '0');
-                        const month = String(d.getMonth() + 1).padStart(2, '0');
-                        const year = String(d.getFullYear()).slice(-2);
-                        const weekday = d.toLocaleDateString('en-GB', { weekday: 'long' });
-                        return `${day}/${month}/${year} - ${weekday}`;
-                    };
-
-                    const formatDateRange = (d1, d2) => {
-                        const df = new Date(d1);
-                        const dt = new Date(d2);
-                        return `Period: ${df.toLocaleDateString('en-GB')} to ${dt.toLocaleDateString('en-GB')}`;
-                    };
-
-                    const formatDateListString = (tasks) => {
-                        if (tasks.length === 0) return '';
-                        const dateStrings = tasks.map(t => formatTaskDate(t.completed_at));
-                        if (dateStrings.length === 1) {
-                            return `neste dia ${dateStrings[0]}`;
-                        }
-                        const lastDate = dateStrings.pop();
-                        return `neste dia ${dateStrings.join(', ')} e no dia ${lastDate}`;
-                    };
-
-                    let report = `Handover Report - ${currentUser.name}\n`;
-                    report += `${formatDateRange(fromVal, toVal)}\n`;
-                    report += `Generated on: ${new Date().toLocaleString('en-GB')}\n`;
-                    report += `=========================================\n\n`;
-
-                    // 1. Hospital Discharge
-                    report += `HOSPITAL DISCHARGES:\n`;
-                    if (hdTasks.length > 0) {
-                        const count = hdTasks.length;
-                        const word = count === 1 ? 'hospital discharge' : 'hospital discharges';
-                        report += `${count} ${word} (${formatDateListString(hdTasks)})\n`;
-                        hdTasks.forEach(t => {
-                            report += `  - ${t.title} (completed on ${formatTaskDate(t.completed_at)})\n`;
-                        });
-                    } else {
-                        report += `Nenhum hospital discharge realizado.\n`;
+                    if (!hasContent) {
+                        report += `No completed tasks found in this period.`;
                     }
-                    report += `\n-----------------------------------------\n\n`;
-
-                    // 2. PSP Done
-                    report += `PSP DONE:\n`;
-                    if (pspTasks.length > 0) {
-                        const count = pspTasks.length;
-                        const dateDetailsList = pspTasks.map(t => `${t.title} no dia ${formatTaskDate(t.completed_at)}`);
-                        report += `PSP done: ${count} (${dateDetailsList.join(', ')})\n`;
-                        pspTasks.forEach(t => {
-                            report += `  - ${t.title} (completed on ${formatTaskDate(t.completed_at)})\n`;
-                        });
-                    } else {
-                        report += `Nenhum PSP realizado.\n`;
-                    }
-                    report += `\n-----------------------------------------\n\n`;
-
-                    // 3. Log Sheets
-                    report += `LOG SHEETS:\n`;
-                    if (sheetsTasks.length > 0) {
-                        const count = sheetsTasks.length;
-                        const details = sheetsTasks.map(t => `fez ${t.title} no dia ${formatTaskDate(t.completed_at)}`);
-                        report += `Log Sheets: ${details.join(', ')}\n`;
-                        sheetsTasks.forEach(t => {
-                            report += `  - fez ${t.title} no dia ${formatTaskDate(t.completed_at)}\n`;
-                        });
-                    } else {
-                        report += `Nenhum Log Sheets realizado.\n`;
-                    }
-                    report += `\n-----------------------------------------\n\n`;
-
-                    // 4. CCA-Spot Check / Shadow Call
-                    report += `CCA-SPOT CHECK / SHADOW CALL:\n`;
-                    if (ccaTasks.length > 0) {
-                        const count = ccaTasks.length;
-                        const dateGroups = {};
-                        ccaTasks.forEach(t => {
-                            const dStr = formatTaskDate(t.completed_at);
-                            dateGroups[dStr] = (dateGroups[dStr] || 0) + 1;
-                        });
-                        const groupStrs = Object.entries(dateGroups).map(([date, cnt]) => `${cnt} ${cnt === 1 ? 'tarefa' : 'tarefas'} no dia ${date}`);
-                        
-                        report += `CCA-Spot Check/Shadow Call Done: ${count} ${count === 1 ? 'tarefa' : 'tarefas'} (${groupStrs.join(', ')})\n`;
-                        ccaTasks.forEach(t => {
-                            report += `  - ${t.title} (completed on ${formatTaskDate(t.completed_at)})\n`;
-                        });
-                    } else {
-                        report += `Nenhum CCA-Spot Check / Shadow Call realizado.\n`;
-                    }
-                    report += `\n=========================================`;
 
                     handoverSummaryText.value = report;
-
-                    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    const cleanName = currentUser.name.replace(/\s+/g, '_');
-                    link.download = `handover_${cleanName}_${fromVal}_to_${toVal}.txt`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
 
                     handoverInputView.classList.add('hidden');
                     handoverSummaryView.classList.remove('hidden');
