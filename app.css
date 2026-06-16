@@ -1518,8 +1518,10 @@ body {
 /* Inline styles extracted */
 .email-icon {
   margin-left: 5px;
-  opacity: 0.7;
   fill: #f1c40f;
+  stroke: #e67e22;
+  stroke-width: 0.5px;
+  opacity: 1;
 }
 
 .donate-heart {
@@ -1548,4 +1550,11 @@ body {
   border: 1px solid #ccc;
   border-radius: 5px;
   text-align: center;
+}
+
+.handover-icon {
+  margin-right: 8px;
+  fill: #e3f2fd;
+  stroke: #1565c0;
+  stroke-width: 0.5px;
 }
