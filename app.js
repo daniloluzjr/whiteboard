@@ -782,9 +782,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const lastSeenLogId = parseInt(localStorage.getItem('lastSeenLogId')) || 0;
                 let hasNewLogs = false;
 
+                let currentUserId = null;
+                try {
+                    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+                    if (userStr) {
+                        const userObj = JSON.parse(userStr);
+                        currentUserId = userObj.id;
+                    }
+                } catch(e) {}
+
                 displayLogs.forEach(log => {
                     if (log.id > lastSeenLogId) {
-                        hasNewLogs = true;
+                        if (log.user_id !== currentUserId) {
+                            hasNewLogs = true;
+                        }
                     }
                     
                     const li = document.createElement('li');
