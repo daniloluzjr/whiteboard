@@ -50,15 +50,15 @@
             <div class="logout-container logout-container-flex">
                 <button id="logout-btn" class="logout-btn">Logout</button>
 
+                <div class="action-buttons-container">
+                    <button class="action-btn email-btn" onclick="window.location.href='mailto:professor_luz@hotmail.com'">
+                        Email us
+                    </button>
+                    <button class="action-btn donate-btn" onclick="document.getElementById('donate-modal').style.display='flex'">
+                        Donate ❤️
+                    </button>
+                </div>
                 <div class="sidebar-footer-link">
-                    <a href="mailto:professor_luz@hotmail.com">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                            viewBox="0 0 16 16">
-                            <path
-                                d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z" />
-                        </svg>
-                        Need Support?
-                    </a>
                     <a href="https://www.luxhealthsystems.com/" target="_blank">
                         <img src="assets/logo.png" alt="Lux Solutions Logo" class="sidebar-logo">
                     </a>
@@ -274,6 +274,37 @@
 
     <!-- Container for Toast Notifications -->
     <div id="notification-container" class="notification-container"></div>
+
+    <!-- Donate Modal -->
+    <div id="donate-modal" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-content donate-modal-content">
+            <h3>Support Our Work ❤️</h3>
+            <p>
+                Thank you so much for your support! Your help keeps our servers running and pays for our domains every year. We truly appreciate it.
+            </p>
+
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;">
+                <span style="font-size: 1.2rem; font-weight: bold; color: #333;">€</span>
+                <input type="number" id="donation-amount" placeholder="0" min="1" step="1" style="width: 100px; padding: 8px; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 5px; text-align: center;">
+            </div>
+
+            <button onclick="processDonation()" class="donate-link-btn" style="cursor: pointer;">
+                Donate via PayPal
+            </button>
+            <button onclick="document.getElementById('donate-modal').style.display='none'" class="btn-cancel" style="width: 100%; margin-top: 10px;">Close</button>
+        </div>
+    </div>
+
+    <script>
+        function processDonation() {
+            const amount = document.getElementById('donation-amount').value;
+            if (amount && amount > 0) {
+                window.open(`https://paypal.me/luxdeveloper/${amount}EUR`, '_blank');
+            } else {
+                window.open(`https://paypal.me/luxdeveloper`, '_blank');
+            }
+        }
+    </script>
 
     <script src="app.js"></script>
 </body>
