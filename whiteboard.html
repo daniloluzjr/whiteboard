@@ -52,13 +52,13 @@
 
                 <div class="action-buttons-container">
                     <button class="action-btn email-btn" onclick="window.location.href='mailto:professor_luz@hotmail.com'">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px;">
+                        Email us
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" class="email-icon">
                             <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z" />
                         </svg>
-                        Email us
                     </button>
                     <button class="action-btn donate-btn" onclick="document.getElementById('donate-modal').style.display='flex'">
-                        Support us <span style="opacity: 0.6; margin-left: 2px;">❤️</span>
+                        Support us <span class="donate-heart">❤️</span>
                     </button>
                 </div>
                 <div class="sidebar-footer-link">
@@ -286,9 +286,9 @@
                 Thank you so much for your support! Your help keeps our servers running and pays for our domains every year. We truly appreciate it.
             </p>
 
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;">
-                <span style="font-size: 1.2rem; font-weight: bold; color: #333;">€</span>
-                <input type="number" id="donation-amount" placeholder="0" min="1" step="1" style="width: 100px; padding: 8px; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 5px; text-align: center;">
+            <div class="donate-input-wrapper">
+                <span class="donate-currency">€</span>
+                <input type="number" id="donation-amount" class="donate-input" placeholder="0" min="1" step="1">
             </div>
 
             <button onclick="processDonation()" class="donate-link-btn" style="cursor: pointer;">
