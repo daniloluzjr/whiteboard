@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const colorThemeMap = {
             'cyan': { text: '#117a8b', bg: 'rgba(23, 162, 184, 0.1)' },
             'green': { text: '#155724', bg: 'rgba(40, 167, 69, 0.1)' },
+            'blue': { text: '#0056b3', bg: 'rgba(0, 123, 255, 0.1)' },
             'yellow': { text: '#856404', bg: 'rgba(255, 193, 7, 0.1)' },
             'purple': { text: '#3c1e70', bg: 'rgba(111, 66, 193, 0.1)' },
             'orange': { text: '#9e3f1b', bg: 'rgba(253, 126, 20, 0.1)' },
@@ -499,6 +500,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Finally, reveal the page to the user
                 const container = document.querySelector('.app-container');
                 if (container) container.style.display = 'flex';
+            } else {
+                // If auth fails without a redirect, it means the API is down or unreachable.
+                alert('Connection to the server failed. The backend API might be offline or experiencing issues. Please try again later.');
             }
         }
 
@@ -553,8 +557,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Hospital Discharge Done', selector: '[data-group="hospital-discharge"]', color: 'indigo' },
                 { name: 'PSP to Do', selector: '[data-group="psp"]', color: 'green' },
                 { name: 'PSP Done', selector: '[data-group="psp"]', color: 'green' },
-                { name: 'Log Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'purple' },
-                { name: 'Log Sheets Delivered', selector: '[data-group="sheets-needed"]', color: 'purple' },
+                { name: 'Log Sheets Needed', selector: '[data-group="sheets-needed"]', color: 'blue' },
+                { name: 'Log Sheets Delivered', selector: '[data-group="sheets-needed"]', color: 'blue' },
                 { name: 'CCA-Spot Check/Shadow Call to Do', selector: '[data-group="extra"]', color: 'pink' },
                 { name: 'CCA-Spot Check/Shadow Call Done', selector: '[data-group="extra"]', color: 'pink' }
             ];
@@ -885,7 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // [FIX] Force Colors for Fixed Groups in Memory
             if (hospitalGroup) hospitalGroup.color = 'indigo';
             if (pspGroup) pspGroup.color = 'green';
-            if (sheetsGroup) sheetsGroup.color = 'purple';
+            if (sheetsGroup) sheetsGroup.color = 'blue';
             if (extraGroup) extraGroup.color = 'pink';
 
             // 1. Clear tasks from FIXED cards
@@ -1019,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let groupColor = group.color;
             if (!groupColor) {
                 if (group.name.includes('PSP')) groupColor = 'green';
-                else if (group.name.includes('Log Sheets')) groupColor = 'purple';
+                else if (group.name.includes('Log Sheets')) groupColor = 'blue';
                 else if (group.name.includes('Hospital Discharge')) groupColor = 'indigo';
                 else if (group.name.includes('CCA-Spot')) groupColor = 'pink';
             }

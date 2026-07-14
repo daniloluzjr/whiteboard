@@ -1558,3 +1558,13 @@ body {
   stroke: #1565c0;
   stroke-width: 0.5px;
 }
+
+/* Adding blue theme to task cards */
+.task-card[data-color="blue"] {
+  border-top: 5px solid #007bff;
+  background-color: rgba(0, 123, 255, 0.15);
+}
+.task-card[data-color="blue"] .add-task-item-btn:hover {
+  color: #007bff !important;
+}
+
